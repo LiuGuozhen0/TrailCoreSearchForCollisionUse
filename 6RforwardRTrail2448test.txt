@@ -1,0 +1,22 @@
+in the constructor of KeccakF
+out of the constructor of KeccakF
+in the constructor of Keccak-fDCLC
+in initializeAll() - 0
+in initializeAll() - 1
+in initializeAll() - 2
+in initializeAll() - 3
+in initializeAll() - 4
+in initializeLambdaLookupTables() - generating/reading cache file
+in initializeLambdaLookupTables() - reading cache file
+in initializeLambdaLookupTables() - 1
+in initializeLambdaLookupTables() - 2
+in initializeLambdaLookupTables() - 3
+in initializeLambdaLookupTables() - 4
+in initializeAll() - 5 
+out of the constructor of Keccak-fDCLC
+
+DC/LC analysis of Keccak-f[1600]
+
+'coreb60m64new-plus-1' containing 2347 trails
+File: 0 / 2347
+  Weight 21 towards round 2 (limiting weight to 15) [affine base]: 1 / 2097152
