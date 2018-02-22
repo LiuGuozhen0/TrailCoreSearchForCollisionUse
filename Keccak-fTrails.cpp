@@ -21,7 +21,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 using namespace std;
 
 Trail::Trail()
-    : totalWeight(0), firstStateSpecified(true), stateAfterLastChiSpecified(false)
+    : firstStateSpecified(true), stateAfterLastChiSpecified(false), totalWeight(0)
 {
 }
 
@@ -66,15 +66,6 @@ void Trail::append(const vector<SliceValue>& state, unsigned int weight)
     totalWeight += weight;
 }
 
-void Trail::append(const vector<SliceValue>& sBeforeChi, const vector<SliceValue>& sAfterChi, unsigned int weight)
-{
-    states.push_back(sBeforeChi);
-	stateAfterLastChi=sAfterChi;
-	stateAfterLastChiSpecified = true;
-    weights.push_back(weight);
-    totalWeight += weight;
-}
-
 void Trail::prepend(const vector<SliceValue>& state, unsigned int weight)
 {
     states.insert(states.begin(), state);
@@ -84,7 +75,6 @@ void Trail::prepend(const vector<SliceValue>& state, unsigned int weight)
 
 void Trail::display(const KeccakFPropagation& DCorLC, ostream& fout) const
 {
-	cout<<"calling Trail::display()"<<endl;
     if (states.size() == 0) {
         fout << "This trail is empty." << endl;
         return;
@@ -96,7 +86,7 @@ void Trail::display(const KeccakFPropagation& DCorLC, ostream& fout) const
     else
         fout << "linear ";
     if (firstStateSpecified) {
-        if (stateAfterLastChiSpecified) 
+        if (stateAfterLastChiSpecified)
             fout << "fully specified trail ";
         else
             fout << "trail prefix ";
@@ -166,7 +156,7 @@ void Trail::display(const KeccakFPropagation& DCorLC, ostream& fout) const
     }
     fout << endl;
 
-    if (!firstStateSpecified) 
+    if (!firstStateSpecified)
         fout << "Round 0 would have weight at least " << weights[0] << endl;
     for(unsigned int i=offsetIndex; i<states.size(); i++) {
         fout << "Round " << dec << i << " (weight " << weights[i];
@@ -197,36 +187,23 @@ void Trail::display(const KeccakFPropagation& DCorLC, ostream& fout) const
         }
     }
 }
-/** Output the valid trail core to a file.
-  * For one trail core, the number of states in the core, the weight and total weight of the core, whether the first state and the state after last chi are specified as well as the states of the core are stored as one entry to the file.
-  */
+
 void Trail::save(ostream& fout) const
 {
-//40 c 0 p 1 c 1 401 0 0 0 0 0 0 0 0 20004 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 10800 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-
     fout << hex;
-    if (states.size() > 1){
-		//cout<<"states.size()="<<states.size()<<endl;
+    if (states.size() > 1)
         fout << states[1].size() << " ";
-	}
-    else if (states.size() > 0){
-		//cout<<"states.size()="<<states.size()<<endl;
-        fout << states[0].size() << " ";//number of slices, e.g. 64
-	}
-    else{
-		//cout<<"states.size()="<<states.size()<<endl;
+    else if (states.size() > 0)
+        fout << states[0].size() << " ";
+    else
         fout << 0 << " ";
-	}
-	//cout<<"totalWeight="<<totalWeight<<endl;
-    fout << totalWeight << " ";//load from the file containing trail cores
+    fout << totalWeight << " ";
     fout << "0 ";
-	//cout<<"firstStateSpecified="<<firstStateSpecified<<endl;
-	//cout<<"stateAfterLastChiSpecified="<<stateAfterLastChiSpecified <<endl;
     if (firstStateSpecified) {
         if (!stateAfterLastChiSpecified)
             fout << "p";
     }
-    else 
+    else
         fout << "c";
     if (stateAfterLastChiSpecified) fout << "l";
     fout << " ";
@@ -235,11 +212,8 @@ void Trail::save(ostream& fout) const
         fout << weights[i] << " ";
     fout << (states.size() - (firstStateSpecified ? 0 : 1)) << " ";
     for(unsigned int i=(firstStateSpecified ? 0 : 1); i<states.size(); i++)
-    for(unsigned int j=0; j<states[i].size(); j++){
-		cout <<hex<< states[i][j] << " ";
-		fout << states[i][j] << " ";
-	}
-	cout<<endl;
+    for(unsigned int j=0; j<states[i].size(); j++)
+        fout << states[i][j] << " ";
     if (stateAfterLastChiSpecified) {
     fout << "1 ";
     for(unsigned int j=0; j<stateAfterLastChi.size(); j++)
@@ -250,33 +224,30 @@ void Trail::save(ostream& fout) const
     fout << endl;
 }
 
-//Each time load one trail core from the input stream(file).
 void Trail::load(istream& fin)
 {
     unsigned int laneSize = 0;
-    /** Techniques that help make heximal input to laneSize happen
-     */
     fin >> hex;
     fin >> laneSize;
     if ((laneSize == 0) || (fin.eof()))
         throw TrailException();
-    fin >> totalWeight;//weight of the trail
+    fin >> totalWeight;
 
     firstStateSpecified = true;
     stateAfterLastChiSpecified = false;
     stateAfterLastChi.clear();
 
     unsigned int size;
-    fin >> size;//check the first and last difference state
-    if (size == 0) {//e.g. \beta_3 case
+    fin >> size;
+    if (size == 0) {
         string c;
-        fin >> c;//further check the assignment of the first state and the state after the last chi
+        fin >> c;
         for(unsigned int i=0; i<c.size(); i++) {
             if (c[i] == 'c') firstStateSpecified = false;
             if (c[i] == 'l') stateAfterLastChiSpecified = true;
         }
-        fin >> size;//the rounds that the trail covers, 1 round for \beta_3 case
-        weights.resize(size);//change the size to "size"
+        fin >> size;
+        weights.resize(size);
         for(unsigned int i=0; i<size; i++)
             fin >> weights[i];
         fin >> size;
@@ -287,8 +258,8 @@ void Trail::load(istream& fin)
             vector<SliceValue> state(laneSize);
             for(unsigned int j=0; j<laneSize; j++)
                 fin >> state[j];
-            states.push_back(state);    
-        }       
+            states.push_back(state);
+        }
         fin >> size;
         if (size == 1) {
             stateAfterLastChi.resize(laneSize);
@@ -305,7 +276,7 @@ void Trail::load(istream& fin)
             vector<SliceValue> state(laneSize);
             for(unsigned int j=0; j<laneSize; j++)
                 fin >> state[j];
-            states.push_back(state);    
+            states.push_back(state);
         }
     }
 }
@@ -318,7 +289,6 @@ void Trail::append(const Trail& otherTrail)
 
 UINT64 Trail::produceHumanReadableFile(const KeccakFPropagation& DCorLC, const string& fileName, bool verbose, unsigned int maxWeight)
 {
-	cout<<"calling Trail::produceHumanReadableFile()"<<endl;
     string fileName2 = fileName+".txt";
     ofstream fout(fileName2.c_str());
     if (verbose)
@@ -329,65 +299,13 @@ UINT64 Trail::produceHumanReadableFile(const KeccakFPropagation& DCorLC, const s
     return count;
 }
 
-bool Trail::testCollision(bool checkCollision[32][2])
-{
-	cout<<"running Trail::testCollision() now.."<<endl;
-	vector<SliceValue> slices = states.back();
-	LaneValue lane2 = 0, lane3 = 0, one = 1;
-	int lanesize = slices.size();
-	int sbox;
-	
-	for(unsigned int i =0; i< lanesize; i++){
-		sbox = slices[i]&0x1F;
-		if(!checkCollision[sbox][0]){
-			return false;
-		}
-		else{
-			lane2 ^= (one<<i);
-		}
-		lane3 ^= checkCollision[sbox][1]? (one<<i) : 0;
-	}
-	UINT64 mask = 0xFFFFFFFF;
-	cout<<hex<<mask<<endl;
-	cout<<hex<<lane3<<endl;
-	cout<<hex<<(mask^lane3)<<endl;
-	for(int i = 0; i<32; i++){
-		if((mask&lane3)==mask){
-			cout<<"yes!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! a satisfied trail is found!"<<endl;
-			return true;
-		} 
-		mask = (mask<<1);
-	}
-	
-	//
-/*
-	int i;
-	vector<LaneValue> lanes;	
-    fromSlicesToLanes(states.back(), lanes);
-
-	if( (lanes[0] == 0) && (lanes[1] ==0) )
-    {   
-	    UINT64 mask = 0xFFFFFFFF;
-
-		for(i = 0; i<32; i++){
-			if((mask&lanes[2])==0){
-				printf("yes! a satisfied trail is found!\n");
-				return true;
-			} 
-			mask = (mask<<1);
-		}
-    }*/
-    return false;
-	
-}
-
 // -------------------------------------------------------------
 //
 // TrailFilterAND
 //
 // -------------------------------------------------------------
 
-TrailFilterAND::TrailFilterAND() 
+TrailFilterAND::TrailFilterAND()
 {
 }
 
@@ -414,7 +332,7 @@ bool TrailFilterAND::filter(const KeccakFPropagation& DCorLC, const Trail& trail
 //
 // -------------------------------------------------------------
 
-TrailFileIterator::TrailFileIterator(const string& aFileName, const KeccakFPropagation& aDCorLC, 
+TrailFileIterator::TrailFileIterator(const string& aFileName, const KeccakFPropagation& aDCorLC,
                                      bool aPrefetch)
     : TrailIterator(aDCorLC), fileName(aFileName), prefetch(aPrefetch)
 {
@@ -422,7 +340,7 @@ TrailFileIterator::TrailFileIterator(const string& aFileName, const KeccakFPropa
     next();
 }
 
-TrailFileIterator::TrailFileIterator(const string& aFileName, const KeccakFPropagation& aDCorLC, 
+TrailFileIterator::TrailFileIterator(const string& aFileName, const KeccakFPropagation& aDCorLC,
                                      TrailFilter *aFilter, bool aPrefetch)
     : TrailIterator(aDCorLC, aFilter), fileName(aFileName), prefetch(aPrefetch)
 {
@@ -430,15 +348,14 @@ TrailFileIterator::TrailFileIterator(const string& aFileName, const KeccakFPropa
     next();
 }
 
-TrailFileIterator::TrailFileIterator(const string& aFileName, const KeccakFPropagation& aDCorLC, 
+TrailFileIterator::TrailFileIterator(const string& aFileName, const KeccakFPropagation& aDCorLC,
                                      TrailFilter *aFilter1, TrailFilter *aFilter2, bool aPrefetch)
     : TrailIterator(aDCorLC, aFilter1, aFilter2), fileName(aFileName), prefetch(aPrefetch)
 {
     initialize();
     next();
 }
-/** The initialization process just outputs the number of trails read from a file.
- */
+
 void TrailFileIterator::initialize()
 {
     fin.open(fileName.c_str());
@@ -447,19 +364,16 @@ void TrailFileIterator::initialize()
     i = 0;
     count = unfilteredCount = 0;
     if (prefetch) {
-        /** Load trails from a file and stored them in a "state" vector.
-         *  Record "count" and "unfilteredCount" as well.
-         */
         while(!(fin.eof())) {
             try {
-                Trail trail(fin);/*load a trail from input stream to a state vector, including the states and the weights*/
-                unfilteredCount++;/*increment to the number of unfiltered trails*/
-                if (filter) {/*Here "filter" is an object of the class TrailFilter, and returns the result of the filter: whether to keep or discard the given trail.*/
+                Trail trail(fin);
+                unfilteredCount++;
+                if (filter) {
                     if (filter->filter(DCorLC, trail))
                         count++;
                 }
                 else
-                    count++;/*count may indicate the number of all trails*/
+                    count++;
             }
             catch(TrailException) {
             }
@@ -473,11 +387,10 @@ void TrailFileIterator::initialize()
     else
         count = ~(UINT64)0;
 }
-//Let end = true?
-//Make sure that all trails in the file are successfully uploaded.
+
 void TrailFileIterator::next()
 {
-    if (fin.eof())//
+    if (fin.eof())
         end = true;
     else {
         bool filterPass;
