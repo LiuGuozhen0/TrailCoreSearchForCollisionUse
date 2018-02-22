@@ -69,9 +69,6 @@ void fromTrailsTo64bitWords(const string& fileNameIn)
     }
 }
 
-
-
-
 void extendForward3Rounds1(KeccakFPropagation::DCorLC DCLC, unsigned int width, const string & inFileName)
 {
 //    KeccakInitializeRoundConstants();
@@ -89,8 +86,6 @@ void extendForward3Rounds1(KeccakFPropagation::DCorLC DCLC, unsigned int width, 
     keccakFTE.forwardExtendTrails(iTrailsIn,iTrailsOut,2,36);
 
 }
-
-
 
 int main(int argc, char *argv[])
 {
