@@ -25,10 +25,8 @@ void getDisplayMap(const vector<SliceValue>& state, vector<unsigned int>& displa
     if (optimizeEmptySlices) {
         unsigned int z=0;
         while(z < state.size()) {
-            while((z < state.size()) && (state[z] != 0)){
-				//cout<<hex<<state[z]<<endl;
-				z++;
-			} 
+            while((z < state.size()) && (state[z] != 0))
+                z++;
             displayMap.push_back(z);
             while((z < state.size()) && (state[z] == 0))
                 z++;
@@ -54,7 +52,6 @@ void displayPlane(ostream& fout, const vector<SliceValue>& state, int offset, un
             RowValue row = getRowFromSlice(state[z], y);
             for(unsigned int sx=0; sx<5; sx++) {
                 unsigned int x = KeccakF::index(sx-offset);
-				//cout<<x<<endl;
                 if ((row & (1<<x)) != 0)
                     fout << "X";
                 else
@@ -147,7 +144,6 @@ void displayParity(ostream& fout, const vector<SliceValue>& state, const int& of
 
 void displayState(ostream& fout, const vector<SliceValue>& state, bool showParity)
 {
-	//cout<<"calling displayState()"<<endl;
     const int offset = 2;
     vector<unsigned int> displayMap;
     getDisplayMap(state, displayMap);
@@ -182,7 +178,7 @@ void KeccakDisplayInSVG::displaySlice(ostream& fout, SliceValue slice, unsigned 
             bool bit = getRowFromSlice(slice, y) & (1 << x);
             fout << "<rect x=\"" << dec << (ix*bitSize)
                 << "\" y=\"" << (iy*bitSize)
-                << "\" width=\"" << bitSize 
+                << "\" width=\"" << bitSize
                 << "\" height=\"" << bitSize << "\" class=\"bit";
             if (bit)
                 fout << " bit_bit_active";
@@ -200,7 +196,7 @@ void KeccakDisplayInSVG::displaySlice(ostream& fout, SliceValue slice, unsigned 
         if (displayRows) {
             fout << "<rect x=\"" << dec << 0
                 << "\" y=\"" << (iy*bitSize)
-                << "\" width=\"" << (5*bitSize) 
+                << "\" width=\"" << (5*bitSize)
                 << "\" height=\"" << bitSize << "\" class=\"f_row";
             if (activeRow)
                 fout << " f_row_row_active";
@@ -210,9 +206,9 @@ void KeccakDisplayInSVG::displaySlice(ostream& fout, SliceValue slice, unsigned 
         }
     }
     if (displaySlices) {
-        fout << "<rect x=\"" << dec << 0 
+        fout << "<rect x=\"" << dec << 0
             << "\" y=\"" << 0
-            << "\" width=\"" << (5*bitSize) 
+            << "\" width=\"" << (5*bitSize)
             << "\" height=\"" << (5*bitSize) << "\" class=\"f_slice";
         if (activeSlice)
             fout << " f_slice_slice_active";
@@ -258,7 +254,7 @@ void KeccakDisplayInSVG::displayStateSparsely(ostream& fout, const vector<SliceV
                 << "</text>\n";
             px += 7*bitSize;
             j++;
-            if (j >= slicesPerRow) {
+            if (j >= (int)slicesPerRow) {
                 px = 0;
                 py += 7*bitSize;
                 j = 0;
@@ -268,10 +264,12 @@ void KeccakDisplayInSVG::displayStateSparsely(ostream& fout, const vector<SliceV
     fout << "</g>" << endl;
 }
 
-void KeccakDisplayInSVG::displayTrail(ostream& fout, const KeccakFPropagation& DCorLC, const Trail& trail, 
+void KeccakDisplayInSVG::displayTrail(ostream& fout, const KeccakFPropagation& DCorLC, const Trail& trail,
     double x, double y, double scale) const
 {
-    bool thetaJustAfterChi = DCorLC.isThetaJustAfterChi();
+    (void)x;
+    (void)y;
+    (void)scale;
     vector<vector<SliceValue> > allAfterPreviousChi;
     vector<vector<SliceValue> > allBeforeTheta;
     vector<vector<SliceValue> > allAfterTheta;
@@ -294,7 +292,7 @@ void KeccakDisplayInSVG::displayTrail(ostream& fout, const KeccakFPropagation& D
             displayStateSparsely(fout, allAfterPreviousChi[i], 0, py);
             fout << "<path class=\"arrow\" d=\"M " << dec << (-bitSize) << "," << (py+5*bitSize) << " "
                 << (-bitSize) << "," << (py+9*bitSize) << "\"/>\n";
-            fout << "<text xml:space=\"preserve\" class=\"normal\" x=\"" << dec << (-0.8*bitSize) << "\" y=\"" << (py+7*bitSize) 
+            fout << "<text xml:space=\"preserve\" class=\"normal\" x=\"" << dec << (-0.8*bitSize) << "\" y=\"" << (py+7*bitSize)
                 << "\"><tspan style=\"font-style:italic;\">\xCE\xB8</tspan>, "
                 << "<tspan style=\"font-style:italic;\">\xCF\x81</tspan>, "
                 << "<tspan style=\"font-style:italic;\">\xCF\x80</tspan></text>\n";
@@ -309,7 +307,7 @@ void KeccakDisplayInSVG::displayTrail(ostream& fout, const KeccakFPropagation& D
             if (i < trail.states.size()-1) {
                 fout << "<path class=\"arrow\" d=\"M " << dec << (-bitSize) << "," << (py+5*bitSize) << " "
                     << (-bitSize) << "," << (py+9*bitSize) << "\"/>\n";
-            fout << "<text xml:space=\"preserve\" class=\"normal\" x=\"" << dec << (-0.8*bitSize) << "\" y=\"" << (py+7*bitSize) 
+            fout << "<text xml:space=\"preserve\" class=\"normal\" x=\"" << dec << (-0.8*bitSize) << "\" y=\"" << (py+7*bitSize)
                     << "\"><tspan style=\"font-style:italic;\">\xCF\x87</tspan></text>\n";
                 py += 9*bitSize;
             }
@@ -350,7 +348,7 @@ void KeccakDisplayInSVG::displayParity(ostream& fout, const KeccakFPropagation& 
         bool affected = ((D[z] & (1 << x)) != 0);
         fout << "<rect x=\"" << dec << (ix*bitSize)
             << "\" y=\"" << (iz*bitSize)
-            << "\" width=\"" << bitSize 
+            << "\" width=\"" << bitSize
             << "\" height=\"" << bitSize << "\" class=\"column";
         if (odd)
             fout << " column_odd";
@@ -358,10 +356,10 @@ void KeccakDisplayInSVG::displayParity(ostream& fout, const KeccakFPropagation& 
             fout << " column_affected";
         fout << "\"/>\n";
         if (odd)
-            fout << "<circle cx=\"" << ((ix+0.5)*bitSize) << "\" cy=\"" << ((iz+0.5)*bitSize) << "\" r=\"" << (bitSize*0.35) 
+            fout << "<circle cx=\"" << ((ix+0.5)*bitSize) << "\" cy=\"" << ((iz+0.5)*bitSize) << "\" r=\"" << (bitSize*0.35)
                 << "\" class=\"odd\"/>\n";
         if (affected)
-            fout << "<circle cx=\"" << ((ix+0.5)*bitSize) << "\" cy=\"" << ((iz+0.5)*bitSize) << "\" r=\"" << (bitSize*0.2) 
+            fout << "<circle cx=\"" << ((ix+0.5)*bitSize) << "\" cy=\"" << ((iz+0.5)*bitSize) << "\" r=\"" << (bitSize*0.2)
                 << "\" class=\"affected\"/>\n";
     }
     fout << "<path class=\"arrow\" d=\"M " << dec << (-bitSize) << "," << (DCorLC.laneSize*bitSize) << " "
@@ -377,27 +375,192 @@ void KeccakDisplayInSVG::displayParity(ostream& fout, const KeccakFPropagation& 
 
 string KeccakDisplayInSVG::getAdditionalBitStyles(unsigned int x, unsigned int y, unsigned int z) const
 {
+    (void)x;
+    (void)y;
+    (void)z;
     return "";
+}
+
+void KeccakDisplayInSVG::displayRow(ostream& fout)
+{
+    {
+        unsigned int iz = laneSize-1;
+        unsigned int z = laneSize-1-iz;
+        {
+            unsigned int iy = 0;
+            unsigned int y = KeccakF::index(7-iy);
+            for(unsigned int ix=0; ix<5; ix++) {
+                unsigned int x = KeccakF::index(ix+3);
+                double px, py;
+                getPosition(ix, iy, z, px, py);
+                fout << "<rect x=\"" << dec << px
+                    << "\" y=\"" << py
+                    << "\" width=\"" << bitSize
+                    << "\" height=\"" << bitSize << "\" class=\"bit";
+                fout << " " << getAdditionalBitStyles(x, y, z);
+                fout << "\"/>\n";
+            }
+        }
+    }
+}
+
+void KeccakDisplayInSVG::displayColumn(ostream& fout)
+{
+    {
+        unsigned int iz = laneSize-1;
+        unsigned int z = laneSize-1-iz;
+        for(unsigned int iy=0; iy<5; iy++) {
+            unsigned int y = KeccakF::index(7-iy);
+            {
+                unsigned int ix = 0;
+                unsigned int x = KeccakF::index(ix+3);
+                double px, py;
+                getPosition(ix, iy, z, px, py);
+                fout << "<rect x=\"" << dec << px
+                    << "\" y=\"" << py
+                    << "\" width=\"" << bitSize
+                    << "\" height=\"" << bitSize << "\" class=\"bit";
+                fout << " " << getAdditionalBitStyles(x, y, z);
+                fout << "\"/>\n";
+            }
+        }
+    }
+}
+
+void KeccakDisplayInSVG::displayLane(ostream& fout)
+{
+    for(unsigned int iz=0; iz<(unsigned int)laneSize; iz++) {
+        unsigned int z = laneSize-1-iz;
+        {
+            unsigned int iy = 0;
+            unsigned int y = KeccakF::index(7-iy);
+            {
+                unsigned ix=0;
+                unsigned int x = KeccakF::index(ix+3);
+                double px, py;
+                getPosition(ix, iy, z, px, py);
+                fout << "<rect x=\"" << dec << px
+                    << "\" y=\"" << py
+                    << "\" width=\"" << bitSize
+                    << "\" height=\"" << bitSize << "\" class=\"bit";
+                fout << " " << getAdditionalBitStyles(x, y, z);
+                fout << "\"/>\n";
+            }
+        }
+    }
+}
+
+void KeccakDisplayInSVG::displayPlane(ostream& fout)
+{
+    for(unsigned int iz=0; iz<(unsigned int)laneSize; iz++) {
+        unsigned int z = laneSize-1-iz;
+        {
+            unsigned int iy = 0;
+            unsigned int y = KeccakF::index(7-iy);
+            for(unsigned int ix=0; ix<5; ix++) {
+                unsigned int x = KeccakF::index(ix+3);
+                double px, py;
+                getPosition(ix, iy, z, px, py);
+                fout << "<rect x=\"" << dec << px
+                    << "\" y=\"" << py
+                    << "\" width=\"" << bitSize
+                    << "\" height=\"" << bitSize << "\" class=\"bit";
+                fout << " " << getAdditionalBitStyles(x, y, z);
+                fout << "\"/>\n";
+            }
+        }
+    }
+}
+
+void KeccakDisplayInSVG::displaySlice(ostream& fout)
+{
+    {
+        unsigned int iz = laneSize-1;
+        unsigned int z = laneSize-1-iz;
+        for(unsigned int iy=0; iy<5; iy++) {
+            unsigned int y = KeccakF::index(7-iy);
+            for(unsigned int ix=0; ix<5; ix++) {
+                unsigned int x = KeccakF::index(ix+3);
+                double px, py;
+                getPosition(ix, iy, z, px, py);
+                fout << "<rect x=\"" << dec << px
+                    << "\" y=\"" << py
+                    << "\" width=\"" << bitSize
+                    << "\" height=\"" << bitSize << "\" class=\"bit";
+                fout << " " << getAdditionalBitStyles(x, y, z);
+                fout << "\"/>\n";
+            }
+        }
+    }
+}
+
+void KeccakDisplayInSVG::displaySheet(ostream& fout)
+{
+    for(unsigned int iz=0; iz<(unsigned int)laneSize; iz++) {
+        unsigned int z = laneSize-1-iz;
+        for(unsigned int iy=0; iy<5; iy++) {
+            unsigned int y = KeccakF::index(7-iy);
+            {
+                unsigned ix=0;
+                unsigned int x = KeccakF::index(ix+3);
+                double px, py;
+                getPosition(ix, iy, z, px, py);
+                fout << "<rect x=\"" << dec << px
+                    << "\" y=\"" << py
+                    << "\" width=\"" << bitSize
+                    << "\" height=\"" << bitSize << "\" class=\"bit";
+                fout << " " << getAdditionalBitStyles(x, y, z);
+                fout << "\"/>\n";
+            }
+        }
+    }
+}
+
+void KeccakDisplayInSVG::displayState(ostream& fout)
+{
+    for(unsigned int iz=0; iz<(unsigned int)laneSize; iz++) {
+        unsigned int z = laneSize-1-iz;
+        for(unsigned int iy=0; iy<5; iy++) {
+            unsigned int y = KeccakF::index(7-iy);
+            for(unsigned int ix=0; ix<5; ix++) {
+                unsigned int x = KeccakF::index(ix+3);
+                double px, py;
+                getPosition(ix, iy, z, px, py);
+                fout << "<rect x=\"" << dec << px
+                    << "\" y=\"" << py
+                    << "\" width=\"" << bitSize
+                    << "\" height=\"" << bitSize << "\" class=\"bit";
+                fout << " " << getAdditionalBitStyles(x, y, z);
+                fout << "\"/>\n";
+            }
+        }
+    }
+}
+
+void KeccakDisplayInSVG::getPosition(unsigned int x, unsigned int y, unsigned int z, double &px, double &py) const
+{
+    const double zOffsetX = 0.4*bitSize;
+    const double zOffsetY = -0.3*bitSize;
+
+    px = (x*bitSize) + z*zOffsetX;
+    py = (y*bitSize) + z*zOffsetY;
 }
 
 void displayStates(ostream& fout,
                    const vector<SliceValue>& state1, bool showParity1,
                    const vector<SliceValue>& state2, bool showParity2)
 {
-	//cout<<"calling displayStates()"<<endl;
-    const int offset = 0; //the value set by the authors is 2. I don't know why
+    const int offset = 2;
     vector<unsigned int> displayMap1, displayMap2;
     getDisplayMap(state1, displayMap1);
     getDisplayMap(state2, displayMap2);
     for(unsigned int sy=0; sy<5; sy++) {
         unsigned int y = KeccakF::index(-1-sy-offset);
-		//cout<<y<<" ";		
         displayPlane(fout, state1, offset, y, displayMap1);
-        fout << "  |  "; 
+        fout << "  |  ";
         displayPlane(fout, state2, offset, y, displayMap2);
         fout << endl;
     }
-	//cout<<endl;
     if (showParity1 || showParity2) {
         if (showParity1)
             displayParity(fout, state1, offset, displayMap1);
@@ -424,7 +587,7 @@ void displayStates(ostream& fout,
     for(unsigned int sy=0; sy<5; sy++) {
         unsigned int y = KeccakF::index(-1-sy-offset);
         displayPlane(fout, state1, offset, y, displayMap1);
-        fout << "  |  "; 
+        fout << "  |  ";
         displayPlane(fout, state2, offset, y, displayMap2);
         fout << "  |  ";
         displayPlane(fout, state3, offset, y, displayMap3);
@@ -446,18 +609,4 @@ void displayStates(ostream& fout,
         }
         fout << endl;
     }
-}
-
-void displayStateAs64bitWords(vector<LaneValue>& lanes)
-{
-    unsigned int x, y;
-	
-
-    for(y=0; y<5; y++){
-        for(x=0; x<5; x++){
-            printf("0x%08X%08X, ", (unsigned int)(lanes[5*y+x] >> 32),(unsigned int)(lanes[5*y+x] & 0xFFFFFFFFULL));
-        }
-        printf("\n");
-    }
-    printf("\n");
 }

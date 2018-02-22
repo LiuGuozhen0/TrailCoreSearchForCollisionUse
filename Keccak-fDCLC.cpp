@@ -64,14 +64,10 @@ void ListOfRowPatterns::display(ostream& fout) const
 //
 // -------------------------------------------------------------
 
-/** Note that before processing the constructor, it first invocates the constructor of the inherited class KeccakF.
-  */
 KeccakFDCLC::KeccakFDCLC(unsigned int aWidth)
     : KeccakF(aWidth)
 {
-	cout<<"in the constructor of Keccak-fDCLC"<<endl;
     initializeAll();
-	cout<<"out of the constructor of Keccak-fDCLC"<<endl;
 }
 
 string KeccakFDCLC::getDescription() const
@@ -128,22 +124,18 @@ int computeLinearWeight(int correl)
 
 void KeccakFDCLC::initializeAll()
 {
-	cout<<"in initializeAll() - 0"<<endl;
     for(RowValue da=0; da<(1<<nrRowsAndColumns); da++) {
-        vector<unsigned int> count(1<<nrRowsAndColumns, 0);//count[32]
+        vector<unsigned int> count(1<<nrRowsAndColumns, 0);
         for(RowValue a=0; a<(1<<nrRowsAndColumns); a++) {
             RowValue db = chiOnRow(a)^chiOnRow(a^da);
             count[db]++;
-        }//count is specified for one input difference "da"
-        /** ListOfRowPatterns is a class that lists the output differences and weights compatible with a given input difference through either chi or inverse chi.
-         */
-        ListOfRowPatterns l;//l is an object of the class
+        }
+        ListOfRowPatterns l;
         for(RowValue db=0; db<(1<<nrRowsAndColumns); db++)
             if (count[db] != 0)
                 l.add(db, computeDifferentialWeight(count[db]));
-        diffChi.push_back(l);//add a new element at the end of the vector: vector<LisOfRowPatterns> KeccakFDCLC::diffChi
+        diffChi.push_back(l);
     }
-	cout<<"in initializeAll() - 1"<<endl;
     for(RowValue da=0; da<(1<<nrRowsAndColumns); da++) {
         vector<unsigned int> count(1<<nrRowsAndColumns, 0);
         for(RowValue a=0; a<(1<<nrRowsAndColumns); a++) {
@@ -156,7 +148,6 @@ void KeccakFDCLC::initializeAll()
                 l.add(db, computeDifferentialWeight(count[db]));
         diffInvChi.push_back(l);
     }
-	cout<<"in initializeAll() - 2"<<endl;
     for(RowValue ua=0; ua<(1<<nrRowsAndColumns); ua++) {
         vector<int> correl(1<<nrRowsAndColumns, 0);
         for(RowValue ub=0; ub<(1<<nrRowsAndColumns); ub++) {
@@ -173,7 +164,6 @@ void KeccakFDCLC::initializeAll()
                 l.add(ub, computeLinearWeight(correl[ub]));
         corrChi.push_back(l);
     }
-	cout<<"in initializeAll() - 3"<<endl;
     for(RowValue ua=0; ua<(1<<nrRowsAndColumns); ua++) {
         vector<int> correl(1<<nrRowsAndColumns, 0);
         for(RowValue ub=0; ub<(1<<nrRowsAndColumns); ub++) {
@@ -190,9 +180,7 @@ void KeccakFDCLC::initializeAll()
                 l.add(ub, computeLinearWeight(correl[ub]));
         corrInvChi.push_back(l);
     }
-	cout<<"in initializeAll() - 4"<<endl;
     initializeLambdaLookupTables();
-	cout<<"in initializeAll() - 5 "<<endl;
 }
 
 void KeccakFDCLC::displayAll(ostream& fout, KeccakFPropagation *DC, KeccakFPropagation *LC) const
@@ -233,29 +221,22 @@ void KeccakFDCLC::displayAll(ostream& fout, KeccakFPropagation *DC, KeccakFPropa
 
 void KeccakFDCLC::initializeLambdaLookupTables()
 {
-	cout<<"in initializeLambdaLookupTables() - generating/reading cache file"<<endl;
     // lambdaRowToSlice
     {
         string fileName = buildFileName("", "-lambda.cache");
         ifstream fin(fileName.c_str(), ios::binary);
         if (!fin) {
-			cout<<"in initializeLambdaLookupTables() - generating cache file"<<endl;
-            /** This for-loop product a multidimensional table [outputSlice][inputSlice][y][row] for each lambda mode.
-              * The 4 dimension illustrate the linear transformation according to the table [outputSlice][inputSlice][y][row] with each item being the ouput slice indexed by the four parameters.
-              */
-            for(unsigned int m=0; m<KeccakFDCLC::EndOfLambdaModes ; m++) {//4 kinds of lambda modes
+            for(unsigned int m=0; m<KeccakFDCLC::EndOfLambdaModes ; m++) {
                 vector<vector<vector<vector<SliceValue> > > > vvvv;
-                for(unsigned int outputSlice=0; outputSlice<laneSize; outputSlice++) {//output slices
+                for(unsigned int outputSlice=0; outputSlice<laneSize; outputSlice++) {
                     vector<vector<vector<SliceValue> > > vvv;
-                    for(unsigned int inputSlice=0; inputSlice<laneSize; inputSlice++) {// input slices
+                    for(unsigned int inputSlice=0; inputSlice<laneSize; inputSlice++) {
                         vector<vector<SliceValue> > vv;
                         for(unsigned int y=0; y<nrRowsAndColumns; y++) {
-                            vector<SliceValue> v(1<<nrRowsAndColumns);//the size of "v" is 2^5=32
+                            vector<SliceValue> v(1<<nrRowsAndColumns);
                             for(RowValue row=0; row<(1<<nrRowsAndColumns); row++) {
-                                vector<LaneValue> state(nrRowsAndColumns*nrRowsAndColumns, 0);//state is initialized to 0
-                                //Insert the value of "row" to the "state" indexed by "y" and "inputSlice"
+                                vector<LaneValue> state(nrRowsAndColumns*nrRowsAndColumns, 0);
                                 setRow(state, row, y, inputSlice);
-                                //Apply the linear transformation "LambdaMode" to the "state"
                                 lambda(state,KeccakFDCLC::LambdaMode(m));
                                 v[row] = getSlice(state, outputSlice);
                             }
@@ -268,7 +249,6 @@ void KeccakFDCLC::initializeLambdaLookupTables()
                 lambdaRowToSlice.push_back(vvvv);
             }
             ofstream fout(fileName.c_str(), ios::binary);
-			cout<<"in initializeLambdaLookupTables() - writing cache file"<<endl;
             for(unsigned int m=0; m<KeccakFDCLC::EndOfLambdaModes ; m++)
             for(unsigned int outputSlice=0; outputSlice<laneSize; outputSlice++)
             for(unsigned int inputSlice=0; inputSlice<laneSize; inputSlice++)
@@ -284,7 +264,6 @@ void KeccakFDCLC::initializeLambdaLookupTables()
             }
         }
         else {
-			cout<<"in initializeLambdaLookupTables() - reading cache file"<<endl;
             for(unsigned int m=0; m<KeccakFDCLC::EndOfLambdaModes ; m++) {
                 vector<vector<vector<vector<SliceValue> > > > vvvv;
                 for(unsigned int outputSlice=0; outputSlice<laneSize; outputSlice++) {
@@ -294,7 +273,7 @@ void KeccakFDCLC::initializeLambdaLookupTables()
                         for(unsigned int y=0; y<nrRowsAndColumns; y++) {
                             vector<SliceValue> v(1<<nrRowsAndColumns);
                             for(RowValue row=0; row<(1<<nrRowsAndColumns); row++) {
-                                static unsigned char tmp[4]; 
+                                static unsigned char tmp[4];
                                 fin.read((char *)tmp, 4);
                                 v[row]  = tmp[3];  v[row] <<= 8;
                                 v[row] ^= tmp[2];  v[row] <<= 8;
@@ -311,7 +290,6 @@ void KeccakFDCLC::initializeLambdaLookupTables()
             }
         }
     }
-	cout<<"in initializeLambdaLookupTables() - 1"<<endl;
     // lambdaBeforeThetaRowToSlice
     for(unsigned int m=0; m<KeccakFDCLC::EndOfLambdaModes ; m++) {
         vector<vector<vector<vector<SliceValue> > > > vvvv;
@@ -335,7 +313,6 @@ void KeccakFDCLC::initializeLambdaLookupTables()
         }
         lambdaBeforeThetaRowToSlice.push_back(vvvv);
     }
-	cout<<"in initializeLambdaLookupTables() - 2"<<endl;
     // thetaJustAfterChi
     for(unsigned int mode=0; mode<KeccakFDCLC::EndOfLambdaModes ; mode++) {
         if ((mode == Straight) || (mode == Dual))
@@ -351,7 +328,6 @@ void KeccakFDCLC::initializeLambdaLookupTables()
             thetaJustBeforeChi.push_back(true);
     }
     // lambdaAfterThetaRowToSlice
-	cout<<"in initializeLambdaLookupTables() - 3"<<endl;
     for(unsigned int m=0; m<KeccakFDCLC::EndOfLambdaModes ; m++) {
         vector<vector<vector<vector<SliceValue> > > > vvvv;
         for(unsigned int outputSlice=0; outputSlice<laneSize; outputSlice++) {
@@ -374,7 +350,6 @@ void KeccakFDCLC::initializeLambdaLookupTables()
         }
         lambdaAfterThetaRowToSlice.push_back(vvvv);
     }
-	cout<<"in initializeLambdaLookupTables() - 4"<<endl;
 }
 
 void KeccakFDCLC::lambda(const vector<SliceValue>& in, vector<SliceValue>& out, LambdaMode mode) const
@@ -447,7 +422,7 @@ void KeccakFDCLC::checkDCTrail(const Trail& trail, KeccakFPropagation *DC) const
         cerr << "The total weight of the trail is incorrect; it should be " << totalWeight << "." << endl;
         throw KeccakException("The total weight in the trail is incorrect!");
     }
-    
+
     // Check compatibility between consecutive states
     for(unsigned int i=1+offsetIndex; i<trail.states.size(); i++) {
         vector<SliceValue> stateAfterChi;
@@ -499,7 +474,7 @@ void KeccakFDCLC::checkLCTrail(const Trail& trail, KeccakFPropagation *LC) const
         cerr << "The total weight of the trail is incorrect; it should be " << totalWeight << "." << endl;
         throw KeccakException("The total weight in the trail is incorrect!");
     }
-    
+
     // Check compatibility between consecutive states
     for(unsigned int i=1+offsetIndex; i<trail.states.size(); i++) {
         vector<SliceValue> stateAfterChi;
@@ -557,8 +532,8 @@ unsigned int KeccakFDCLC::getThetaGap(const vector<LaneValue>& state) const
 {
     vector<LaneValue> C(5);
     for(unsigned int x=0; x<5; x++) {
-        C[x] = state[index(x,0)]; 
-        for(unsigned int y=1; y<5; y++) 
+        C[x] = state[index(x,0)];
+        for(unsigned int y=1; y<5; y++)
             C[x] ^= state[index(x,y)];
     }
     return getThetaGapFromParity(C);
@@ -568,7 +543,7 @@ unsigned int KeccakFDCLC::getThetaGapFromParity(const vector<LaneValue>& paritie
 {
     vector<LaneValue> D(5);
     getThetaEffectFromParity(parities, D);
-    return 
+    return
          (getHammingWeightLane(D[0])
         + getHammingWeightLane(D[1])
         + getHammingWeightLane(D[2])

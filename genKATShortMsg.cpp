@@ -48,32 +48,32 @@ void genKATShortMsg_main()
     genShortMsg( 512,  288, 4096, "r512c288");
     genShortMsg( 544,  256, 4096, "r544c256");
     genShortMsg( 640,  160, 4096, "r640c160");
- 
+
     genShortMsg( 128,  272, 4096, "r128c272");
     genShortMsg( 144,  256, 4096, "r144c256");
     genShortMsg( 240,  160, 4096, "r240c160");
-    
+
     genShortMsg(  40,   160, 4096, "r40c160");
 
     // The following instances are from
     // [Keccak team, Cryptology ePrint Archive, Report 2013/231, Table 4]
-    genShortMsgHash(1344, 256, 0x1F, 0, 4096, 
-        "ShortMsgKAT_KeccakSeqHash11c256.txt", 
+    genShortMsgHash(1344, 256, 0x1F, 0, 4096,
+        "ShortMsgKAT_KeccakSeqHash11c256.txt",
         "Keccak(SakuraSequential|11)[r=1344, c=256] sponge function");
-    genShortMsgHash(1344, 256, 0x33, 224, 0, 
-        "ShortMsgKAT_KeccakSeqHash001c256_n224.txt", 
+    genShortMsgHash(1344, 256, 0x33, 224, 0,
+        "ShortMsgKAT_KeccakSeqHash001c256_n224.txt",
         "Keccak(SakuraSequential|001)[r=1344, c=256] 224-bit hash function");
-    genShortMsgHash(1344, 256, 0x37, 256, 0, 
-        "ShortMsgKAT_KeccakSeqHash101c256_n256.txt", 
+    genShortMsgHash(1344, 256, 0x37, 256, 0,
+        "ShortMsgKAT_KeccakSeqHash101c256_n256.txt",
         "Keccak(SakuraSequential|101)[r=1344, c=256] 256-bit hash function");
     genShortMsgHash(1088, 512, 0x1F, 0, 4096,
-        "ShortMsgKAT_KeccakSeqHash11c512.txt", 
+        "ShortMsgKAT_KeccakSeqHash11c512.txt",
         "Keccak(SakuraSequential|11)[r=1088, c=512] sponge function");
     genShortMsgHash(1088, 512, 0x33, 384, 0,
-        "ShortMsgKAT_KeccakSeqHash001c512_n384.txt", 
+        "ShortMsgKAT_KeccakSeqHash001c512_n384.txt",
         "Keccak(SakuraSequential|001)[r=1088, c=512] 384-bit hash function");
-    genShortMsgHash(1088, 512, 0x37, 512, 0, 
-        "ShortMsgKAT_KeccakSeqHash101c512_n512.txt", 
+    genShortMsgHash(1088, 512, 0x37, 512, 0,
+        "ShortMsgKAT_KeccakSeqHash101c512_n512.txt",
         "Keccak(SakuraSequential|101)[r=1088, c=512] 512-bit hash function");
 }
 
@@ -147,34 +147,36 @@ STATUS_CODES genShortMsg(unsigned int rate, unsigned int capacity, int outputLen
         printf("Couldn't open <ShortMsgKAT.txt> for read\n");
         return KAT_FILE_OPEN_ERROR;
     }
-    
+
     string fileName = std::string("ShortMsgKAT_") + suffix + std::string(".txt");
     if ( (fp_out = fopen(fileName.c_str(), "w")) == NULL ) {
         printf("Couldn't open <%s> for write\n", fileName.c_str());
         return KAT_FILE_OPEN_ERROR;
     }
     fprintf(fp_out, "# %s\n", fileName.c_str());
-    if ( FindMarker(fp_in, "# Algorithm Name:") ) {
-        fscanf(fp_in, "%[^\n]\n", line);
+    if ( FindMarker(fp_in, "# Algorithm Name:") && (1 == fscanf(fp_in, "%[^\n]\n", line)) ) {
         fprintf(fp_out, "# Algorithm Name:%s\n", line);
     }
     else {
         printf("genShortMsg: Couldn't read Algorithm Name\n");
         return KAT_HEADER_ERROR;
     }
-    if ( FindMarker(fp_in, "# Principal Submitter:") ) {
-        fscanf(fp_in, "%[^\n]\n", line);
+    if ( FindMarker(fp_in, "# Principal Submitter:") && (1 == fscanf(fp_in, "%[^\n]\n", line)) ) {
         fprintf(fp_out, "# Principal Submitter:%s\n", line);
     }
     else {
         printf("genShortMsg: Couldn't read Principal Submitter\n");
         return KAT_HEADER_ERROR;
     }
-    
+
     done = 0;
     do {
-        if ( FindMarker(fp_in, "Len = ") )
-            fscanf(fp_in, "%d", &msglen);
+        if ( FindMarker(fp_in, "Len = ") ) {
+            if ( 1 != fscanf(fp_in, "%d", &msglen)) {
+                printf("ERROR: unable to read 'Len' from <ShortMsgKAT.txt>\n");
+                return KAT_DATA_ERROR;
+            }
+        }
         else {
             done = 1;
             break;
@@ -199,10 +201,10 @@ STATUS_CODES genShortMsg(unsigned int rate, unsigned int capacity, int outputLen
             fprintBstr(fp_out, "Squeezed = ", Squeezed, outputLength/8);
     } while ( !done );
     printf("finished ShortMsgKAT for <%s>\n", suffix.c_str());
-    
+
     fclose(fp_in);
     fclose(fp_out);
-    
+
     return KAT_SUCCESS;
 }
 
@@ -228,7 +230,6 @@ unsigned int getNumberOfDelimitedBits(unsigned char delimitedSuffix)
 
 STATUS_CODES genShortMsgHash(unsigned int rate, unsigned int capacity,  unsigned char delimitedSuffix, unsigned int hashbitlen, unsigned int squeezedOutputLength, const std::string& fileName, const std::string& description)
 {
-    char        line[SUBMITTER_INFO_LEN];
     int         msglen, msgbytelen, done;
     BitSequence Msg[256];
     BitSequence Squeezed[SqueezingOutputLength/8];
@@ -238,17 +239,21 @@ STATUS_CODES genShortMsgHash(unsigned int rate, unsigned int capacity,  unsigned
         printf("Couldn't open <ShortMsgKAT.txt> for read\n");
         return KAT_FILE_OPEN_ERROR;
     }
-    
+
     if ( (fp_out = fopen(fileName.c_str(), "w")) == NULL ) {
         printf("Couldn't open <%s> for write\n", fileName.c_str());
         return KAT_FILE_OPEN_ERROR;
     }
     fprintf(fp_out, "# %s\n", description.c_str());
-    
+
     done = 0;
     do {
-        if ( FindMarker(fp_in, "Len = ") )
-            fscanf(fp_in, "%d", &msglen);
+        if ( FindMarker(fp_in, "Len = ") ) {
+            if ( 1 != fscanf(fp_in, "%d", &msglen)) {
+                printf("ERROR: unable to read 'Len' from <ShortMsgKAT.txt>\n");
+                return KAT_DATA_ERROR;
+            }
+        }
         else {
             done = 1;
             break;
@@ -272,17 +277,17 @@ STATUS_CODES genShortMsgHash(unsigned int rate, unsigned int capacity,  unsigned
             keccak.absorb(suffix, getNumberOfDelimitedBits(delimitedSuffix));
         }
         keccak.squeeze(Squeezed, max(hashbitlen, squeezedOutputLength));
-                
+
         if (hashbitlen > 0)
             fprintBstr(fp_out, "MD = ", Squeezed, hashbitlen/8);
         if (squeezedOutputLength > 0)
             fprintBstr(fp_out, "Squeezed = ", Squeezed, SqueezingOutputLength/8);
     } while ( !done );
     printf("finished ShortMsgKAT for <%s>\n", fileName.c_str());
-    
+
     fclose(fp_in);
     fclose(fp_out);
-    
+
     return KAT_SUCCESS;
 }
 
@@ -297,7 +302,7 @@ STATUS_CODES genSpongeKAT(Sponge& sponge, const std::string& suffix)
         printf("Couldn't open <SpongeKAT.txt> for read\n");
         return KAT_FILE_OPEN_ERROR;
     }
-    
+
     string fileName = std::string("SpongeKAT_") + suffix + std::string(".txt");
     if ( (fp_out = fopen(fileName.c_str(), "w")) == NULL ) {
         printf("Couldn't open <%s> for write\n", fileName.c_str());
@@ -306,13 +311,17 @@ STATUS_CODES genSpongeKAT(Sponge& sponge, const std::string& suffix)
     fprintf(fp_out, "# %s\n", fileName.c_str());
     string description = sponge.getDescription();
     fprintf(fp_out, "# Algorithm: %s\n", description.c_str());
-    
+
     done = 0;
     squeezedLen = 4096;
     squeezedByteLen = (squeezedLen+7)/8;
     do {
-        if ( FindMarker(fp_in, "AbsorbedLen = ") )
-            fscanf(fp_in, "%d", &absorbedLen);
+        if ( FindMarker(fp_in, "AbsorbedLen = ") ) {
+            if ( 1 != fscanf(fp_in, "%d", &absorbedLen)) {
+                printf("ERROR: unable to read 'AbsorbedLen' from <ShortMsgKAT.txt>\n");
+                return KAT_DATA_ERROR;
+            }
+        }
         else {
             done = 1;
             break;
@@ -332,10 +341,10 @@ STATUS_CODES genSpongeKAT(Sponge& sponge, const std::string& suffix)
         fprintBstr(fp_out, "Squeezed = ", squeezed, squeezedByteLen);
     } while ( !done );
     printf("finished SpongeKAT for <%s>\n", suffix.c_str());
-    
+
     fclose(fp_in);
     fclose(fp_out);
-    
+
     return KAT_SUCCESS;
 }
 
@@ -350,7 +359,7 @@ STATUS_CODES genDuplexKAT(Duplex& duplex, const std::string& suffix)
         printf("Couldn't open <DuplexKAT.txt> for read\n");
         return KAT_FILE_OPEN_ERROR;
     }
-    
+
     string fileName = std::string("DuplexKAT_") + suffix + std::string(".txt");
     if ( (fp_out = fopen(fileName.c_str(), "w")) == NULL ) {
         printf("Couldn't open <%s> for write\n", fileName.c_str());
@@ -359,13 +368,17 @@ STATUS_CODES genDuplexKAT(Duplex& duplex, const std::string& suffix)
     fprintf(fp_out, "# %s\n", fileName.c_str());
     string description = duplex.getDescription();
     fprintf(fp_out, "# Algorithm: %s\n", description.c_str());
-    
+
     done = 0;
     outLen = duplex.getMaximumOutputLength();
     outByteLen = (outLen+7)/8;
     do {
-        if ( FindMarker(fp_in, "InLen = ") )
-            fscanf(fp_in, "%d", &inLen);
+        if ( FindMarker(fp_in, "InLen = ") ) {
+            if ( 1 != fscanf(fp_in, "%d", &inLen)) {
+                printf("ERROR: unable to read 'InLen' from <ShortMsgKAT.txt>\n");
+                return KAT_DATA_ERROR;
+            }
+        }
         else {
             done = 1;
             break;
@@ -376,7 +389,7 @@ STATUS_CODES genDuplexKAT(Duplex& duplex, const std::string& suffix)
             printf("ERROR: unable to read 'In' from <DuplexKAT.txt>\n");
             return KAT_DATA_ERROR;
         }
-        if (inLen <= duplex.getMaximumInputLength()) {
+        if (inLen <= (int)duplex.getMaximumInputLength()) {
             fprintf(fp_out, "\nInLen = %d\n", inLen);
             fprintBstr(fp_out, "In = ", in, inByteLen);
             duplex.duplexing((const UINT8 *)in, inLen, (UINT8 *)out, outLen);
@@ -385,10 +398,10 @@ STATUS_CODES genDuplexKAT(Duplex& duplex, const std::string& suffix)
         }
     } while ( !done );
     printf("finished DuplexKAT for <%s>\n", suffix.c_str());
-    
+
     fclose(fp_in);
     fclose(fp_out);
-    
+
     return KAT_SUCCESS;
 }
 
@@ -432,7 +445,7 @@ int
 ReadHex(FILE *infile, BitSequence *A, int Length, const char *str)
 {
     int         i, ch, started;
-    BitSequence ich;
+    BitSequence ich=0;
 
     if ( Length == 0 ) {
         A[0] = 0x00;

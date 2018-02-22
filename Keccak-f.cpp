@@ -15,7 +15,6 @@ http://creativecommons.org/publicdomain/zero/1.0/
 
 #include <sstream>
 #include "Keccak-f.h"
-#include <iostream>
 
 using namespace std;
 
@@ -33,7 +32,6 @@ KeccakF::KeccakF(unsigned int aWidth, int aStartRoundIndex, unsigned int aNrRoun
 
 KeccakF::KeccakF(unsigned int aWidth)
 {
-	cout<<"in the constructor of KeccakF"<<endl;
     width = aWidth;
     initializeNominalNumberOfRounds();
     laneSize = width/25;
@@ -42,7 +40,6 @@ KeccakF::KeccakF(unsigned int aWidth)
     mask = (LaneValue(~0)) >> (64-laneSize);
     initializeRhoOffsets();
     initializeRoundConstants();
-	cout<<"out of the constructor of KeccakF"<<endl;
 }
 
 void KeccakF::initializeNominalNumberOfRounds()
@@ -190,9 +187,14 @@ void KeccakF::inverse(UINT8 * state) const
 string KeccakF::getDescription() const
 {
     stringstream a;
-    a << "Keccak-f[" << dec << width;
-    if ((nrRounds != nominalNrRounds) || (startRoundIndex != 0))
+    if ((nrRounds == nominalNrRounds) && (startRoundIndex == 0))
+        a << "Keccak-f[" << dec << width;
+    else if ((startRoundIndex + nrRounds) == nominalNrRounds)
+        a << "Keccak-p[" << dec << width << ", " << nrRounds;
+    else {
+        a << "Keccak-f[" << dec << width;
         a << ", " << dec << nrRounds << " rounds " << startRoundIndex << "-" << (startRoundIndex+nrRounds-1);
+    }
     a << "]";
     return a.str();
 }
@@ -299,18 +301,18 @@ KeccakFfirstRounds::KeccakFfirstRounds(unsigned int aWidth)
 {
 }
 
-KeccakFlastRounds::KeccakFlastRounds(unsigned int aWidth, unsigned int aNrRounds)
+KeccakP::KeccakP(unsigned int aWidth, unsigned int aNrRounds)
 : KeccakF(aWidth, 0, aNrRounds)
 {
     startRoundIndex = (int)nominalNrRounds - (int)nrRounds;
 }
 
-KeccakFlastRounds::KeccakFlastRounds(unsigned int aWidth)
+KeccakP::KeccakP(unsigned int aWidth)
 : KeccakF(aWidth)
 {
 }
 
-string KeccakFlastRounds::getName() const
+string KeccakP::getName() const
 {
     stringstream a;
     a << "KeccakP-" << dec << width << "-" << nrRounds;
@@ -326,3 +328,36 @@ KeccakFanyRounds::KeccakFanyRounds(unsigned int aWidth)
 : KeccakF(aWidth)
 {
 }
+
+KeccakPStar::KeccakPStar(unsigned int aWidth, unsigned int aNrRounds)
+: KeccakP(aWidth, aNrRounds)
+{
+}
+
+void KeccakPStar::operator()(UINT8 * state) const
+{
+    vector<LaneValue> A(25);
+    fromBytesToLanes(state, A);
+    inversePi(A);
+    KeccakF::forward(A);
+    pi(A);
+    fromLanesToBytes(A, state);
+}
+
+void KeccakPStar::inverse(UINT8 * state) const
+{
+    vector<LaneValue> A(25);
+    fromBytesToLanes(state, A);
+    inversePi(A);
+    KeccakF::inverse(A);
+    pi(A);
+    fromLanesToBytes(A, state);
+}
+
+string KeccakPStar::getName() const
+{
+    stringstream a;
+    a << "KeccakPStar-" << dec << width << "-" << nrRounds;
+    return a.str();
+}
+

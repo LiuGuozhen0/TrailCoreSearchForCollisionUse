@@ -41,6 +41,7 @@ void AffineSpaceOfRows::display(ostream& fout) const
     fout << ">" << endl;
 }
 
+
 // -------------------------------------------------------------
 //
 // AffineSpaceOfSlices
@@ -48,7 +49,7 @@ void AffineSpaceOfRows::display(ostream& fout) const
 // -------------------------------------------------------------
 
 AffineSpaceOfSlices::AffineSpaceOfSlices(vector<SliceValue>& aGenerators, vector<RowValue>& aGeneratorParities, SliceValue aOffset, RowValue aOffsetParity)
-    : offset(aOffset), 
+    : offset(aOffset),
     offsetParity(aOffsetParity)
 {
     setGenerators(aGenerators, aGeneratorParities);
@@ -130,7 +131,6 @@ void AffineSpaceOfSlices::display(ostream& fout) const
 bool AffineSpaceOfSlices::getOffsetWithGivenParity(RowValue parity, SliceValue& output) const
 {
     output = offset;
-    RowValue outputParity = offsetParity;
     RowValue correctionParity = parity^offsetParity;
 
     unsigned int i = 0;
@@ -151,6 +151,7 @@ bool AffineSpaceOfSlices::getOffsetWithGivenParity(RowValue parity, SliceValue& 
     return (correctionParity == 0);
 }
 
+
 // -------------------------------------------------------------
 //
 // AffineSpaceOfStates
@@ -158,13 +159,13 @@ bool AffineSpaceOfSlices::getOffsetWithGivenParity(RowValue parity, SliceValue& 
 // -------------------------------------------------------------
 
 AffineSpaceOfStates::AffineSpaceOfStates(unsigned int aLaneSize, vector<vector<SliceValue> >& aGenerators, vector<PackedParity>& aGeneratorParities, const vector<SliceValue>& aOffset, PackedParity aOffsetParity)
-    : laneSize(aLaneSize), offset(aOffset), offsetParityPacked(aOffsetParity), packed(true)
+    : offset(aOffset), offsetParityPacked(aOffsetParity), packed(true), laneSize(aLaneSize)
 {
     setGenerators(aGenerators, aGeneratorParities);
 }
 
 AffineSpaceOfStates::AffineSpaceOfStates(unsigned int aLaneSize, vector<vector<SliceValue> >& aGenerators, vector<vector<RowValue> >& aGeneratorParities, const vector<SliceValue>& aOffset, const vector<RowValue>& aOffsetParity)
-    : laneSize(aLaneSize), offset(aOffset), offsetParity(aOffsetParity), packed(false)
+    : offset(aOffset), offsetParity(aOffsetParity), packed(false), laneSize(aLaneSize)
 {
     setGenerators(aGenerators, aGeneratorParities);
 }
@@ -315,7 +316,6 @@ bool AffineSpaceOfStates::getOffsetWithGivenParity(PackedParity parity, vector<S
     }
     else {
         output = offset;
-        PackedParity outputParity = offsetParityPacked;
         PackedParity correctionParity = parity^offsetParityPacked;
 
         unsigned int i = 0;
@@ -385,7 +385,7 @@ bool AffineSpaceOfStates::getOffsetWithGivenParity(const vector<RowValue>& parit
 SlicesAffineSpaceIterator AffineSpaceOfStates::getIteratorWithGivenParity(PackedParity parity) const
 {
     vector<SliceValue> offset;
-    
+
     if (getOffsetWithGivenParity(parity, offset))
         return SlicesAffineSpaceIterator(kernelGenerators, offset);
     else
@@ -395,7 +395,7 @@ SlicesAffineSpaceIterator AffineSpaceOfStates::getIteratorWithGivenParity(Packed
 SlicesAffineSpaceIterator AffineSpaceOfStates::getIteratorWithGivenParity(const vector<RowValue>& parity) const
 {
     vector<SliceValue> offset;
-    
+
     if (getOffsetWithGivenParity(parity, offset))
         return SlicesAffineSpaceIterator(kernelGenerators, offset);
     else
@@ -406,7 +406,7 @@ SlicesAffineSpaceIterator AffineSpaceOfStates::getIteratorInKernel() const
 {
     vector<RowValue> parity(laneSize, 0);
     vector<SliceValue> offset;
-    
+
     if (getOffsetWithGivenParity(parity, offset))
         return SlicesAffineSpaceIterator(kernelGenerators, offset);
     else
