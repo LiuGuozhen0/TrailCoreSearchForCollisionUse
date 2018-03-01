@@ -2,8 +2,8 @@
  * This text is created to implement some algorithms when necessary.
  */
 
- #ifndef _TESTTOOLS_
- #define _TESTTOOLS_
+ #ifndef _TESTTOOLS_H_
+ #define _TESTTOOLS_H_
 
  #include <cstdlib>
  #include <fstream>
@@ -37,3 +37,11 @@
  #include <string.h>//memset()
 
  using namespace std;
+
+ int display_intermediate_state_on_screen(uint64_t state[5][5]);
+ void generateChoices(int choices[32]);
+ void fromTrailsTo64bitWords1(const string& fileNameIn);
+ int computeWeightOfW1(void);
+ int instantFormatTransformation(void);
+
+ #endif

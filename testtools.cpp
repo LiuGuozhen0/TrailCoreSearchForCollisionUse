@@ -1,4 +1,4 @@
-#include <testtools.h>
+#include "testtools.h"
 
 #define ROTATIONS_N(x,n) (((x)<<(n))^((x)>>(64-(n))))
 #define iROTATIONS_N(x,n) (((x)>>(n))^((x)<<(64-(n))))

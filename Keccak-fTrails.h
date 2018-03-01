@@ -105,6 +105,14 @@ public:
       * @param   weight The propagation weight.
       */
     void prepend(const vector<SliceValue>& state, unsigned int weight);
+    /** This method inserts a state at the beginning of @a states,
+      * with its corresp propagation weights as well as the best reverse weight of a3.
+      * I'd like to add both w(b3) and wrev(a3) to the weight of the trail so that I can monitor the trail properly.
+      * @param state   The state to add, i.e., b3.
+      * @param weight  The propagation weight of b3, i.e., w(b3).
+      * @param revWeight  The minimal reverse propagation weight of a3, i.e., wrev(a3).
+      */
+    void prepend(const std::vector<SliceValue>& state, unsigned int weight, unsigned int revWeight);
     /** This method displays the trail for in a human-readable form.
       * @param   DCorLC The propagation context of the trail,
       *                 as a reference to a KeccakFPropagation object.

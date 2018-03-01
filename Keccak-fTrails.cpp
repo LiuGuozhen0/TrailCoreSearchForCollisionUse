@@ -72,6 +72,13 @@ void Trail::prepend(const vector<SliceValue>& state, unsigned int weight)
     weights.insert(weights.begin(), weight);
     totalWeight += weight;
 }
+void Trail::prepend(const std::vector<SliceValue>& state, unsigned int weight, unsigned int revWeight)
+{
+  states.insert(states.begin(), state);
+  weights.insert(weights.begin(), weight);
+  weights.insert(weights.begin(),revWeight);
+  totalWeight = totalWeight + weight + revWeight;
+}
 
 void Trail::display(const KeccakFPropagation& DCorLC, ostream& fout) const
 {
@@ -226,6 +233,7 @@ void Trail::save(ostream& fout) const
 
 void Trail::load(istream& fin)
 {
+  // cout << "Check this trail!" << endl;//That's a checking flag
     unsigned int laneSize = 0;
     fin >> hex;
     fin >> laneSize;
@@ -252,7 +260,7 @@ void Trail::load(istream& fin)
             fin >> weights[i];
         fin >> size;
         states.clear();
-        if (!firstStateSpecified)
+        if (firstStateSpecified)//I changed the previousl "firstStateSpecified"
             states.push_back(vector<SliceValue>());
         for(unsigned int i=0; i<size; i++) {
             vector<SliceValue> state(laneSize);
@@ -356,6 +364,11 @@ TrailFileIterator::TrailFileIterator(const string& aFileName, const KeccakFPropa
     next();
 }
 
+/*
+ * Check whether the file contains valid trail cores.
+ * When "prefetch" is set true, give the number of trail cores in the input file.
+ *
+ */
 void TrailFileIterator::initialize()
 {
     fin.open(fileName.c_str());

@@ -84,4 +84,6 @@ void displayStates(ostream& fout,
                    const vector<SliceValue>& state2, bool showParity2,
                    const vector<SliceValue>& state3, bool showParity3);
 
+void displayStateAs64bitWords(vector<LaneValue>& lanes);
+
 #endif

@@ -18,6 +18,7 @@ void myExtendBackward(KeccakFPropagation::DCorLC DCLC, unsigned int width, const
 void myExtendForward(KeccakFPropagation::DCorLC DCLC, unsigned int width, const string& inFileName);
 void myExtendForward(UINT64 A[25]);
 
+//new added functions
+void Extend2RTrailCoreBackaward(KeccakFPropagation::DCorLC DCLC, unsigned int width, const string& inFileName);
+
 #endif
-
-

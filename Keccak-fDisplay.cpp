@@ -610,3 +610,17 @@ void displayStates(ostream& fout,
         fout << endl;
     }
 }
+
+void displayStateAs64bitWords(vector<LaneValue>& lanes)
+{
+    unsigned int x, y;
+
+
+    for(y=0; y<5; y++){
+        for(x=0; x<5; x++){
+            printf("0x%08X%08X, ", (unsigned int)(lanes[5*y+x] >> 32),(unsigned int)(lanes[5*y+x] & 0xFFFFFFFFULL));
+        }
+        printf("\n");
+    }
+    printf("\n");
+}

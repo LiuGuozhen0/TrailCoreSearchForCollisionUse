@@ -457,8 +457,8 @@ private:
     vector<unsigned int> indexes;
     unsigned int size;
     unsigned int minWeight, maxWeight;
-    vector<SliceValue> current;
-    unsigned int currentWeight;
+    vector<SliceValue> current;//for example, b3
+    unsigned int currentWeight;//the weight of b3->a4
     UINT64 index;
     bool end;
 public:

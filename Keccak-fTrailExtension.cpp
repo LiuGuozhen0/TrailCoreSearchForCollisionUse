@@ -88,17 +88,17 @@ int KnownSmallWeightStates::getMaxCompleteWeight() const
     return maxCompleteWeight;
 }
 
-void KnownSmallWeightStates::connect(const KeccakFPropagation& DCorLC, const vector<SliceValue>& inputState, 
+void KnownSmallWeightStates::connect(const KeccakFPropagation& DCorLC, const vector<SliceValue>& inputState,
     int maxWeightOut, vector<vector<SliceValue> >& compatibleStates) const
 {
     unsigned int inputNrRows = getNrActiveRows(inputState);
-    for(unsigned int weight=2; (weight<=maxWeightOut) && (weight<statesAfterChiPerWeight.size()); weight++)
+    for(unsigned int weight=2; (weight<=(unsigned int)maxWeightOut) && (weight<statesAfterChiPerWeight.size()); weight++)
         for(unsigned int i=0; i<statesAfterChiPerWeight[weight].size(); i++)
             if (getNrActiveRows(statesAfterChiPerWeight[weight][i]) == inputNrRows)
                 connect(DCorLC, inputState, statesAfterChiPerWeight[weight][i], compatibleStates);
 }
 
-void KnownSmallWeightStates::connect(const KeccakFPropagation& DCorLC, const vector<SliceValue>& inputState, 
+void KnownSmallWeightStates::connect(const KeccakFPropagation& DCorLC, const vector<SliceValue>& inputState,
     const vector<SliceValue>& candidate, vector<vector<SliceValue> >& compatibleStates) const
 {
     for(unsigned int z=0; z<DCorLC.laneSize; z++) {
@@ -119,7 +119,7 @@ void KnownSmallWeightStates::loadFromFile(const KeccakFPropagation& DCorLC, cons
     for( ; !fin.isEnd(); ++fin) {
         const Trail& trail = *fin;
         for(unsigned int i=(trail.firstStateSpecified ? 0 : 1); i<trail.weights.size(); i++)
-            if (trail.weights[i] <= maxCompleteWeight)
+            if (trail.weights[i] <= (unsigned int)maxCompleteWeight)
                 addState(DCorLC, trail.states[i]);
     }
 }
@@ -143,7 +143,7 @@ void KnownSmallWeightStates::saveToFile(const KeccakFPropagation& DCorLC, const 
 void KnownSmallWeightStates::addState(const KeccakFPropagation& DCorLC, const vector<SliceValue>& state)
 {
     unsigned int weight = DCorLC.getWeight(state);
-    if (weight > maxCompleteWeight) return;
+    if (weight > (unsigned int)maxCompleteWeight) return;
     vector<SliceValue> stateAfterChi;
     DCorLC.reverseLambda(state, stateAfterChi);
     statesAfterChiPerWeight[weight].push_back(stateAfterChi);
@@ -211,16 +211,6 @@ void KeccakFTrailExtension::forwardExtendTrails(TrailIterator& trailsIn, TrailFe
     progress.unstack();
 }
 
-void KeccakFTrailExtension::forwardExtendTrails(TrailIterator& trailsIn, TrailFetcher& trailsOut, unsigned int nrRounds, int maxTotalWeight, bool checkCollision[32][2])
-{
-    progress.stack("File", trailsIn.getCount());
-    for( ; !trailsIn.isEnd(); ++trailsIn) {
-        forwardExtendTrail(*trailsIn, trailsOut, nrRounds, maxTotalWeight, checkCollision);
-        ++progress;
-    }
-    progress.unstack();
-}
-
 void KeccakFTrailExtension::forwardExtendTrail(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxTotalWeight)
 {
     if (trail.stateAfterLastChiSpecified)
@@ -228,104 +218,11 @@ void KeccakFTrailExtension::forwardExtendTrail(const Trail& trail, TrailFetcher&
     recurseForwardExtendTrail(trail, trailsOut, nrRounds, maxTotalWeight);
 }
 
-void KeccakFTrailExtension::forwardExtendTrail(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxTotalWeight, bool checkCollision[32][2])
-{
-    if (trail.stateAfterLastChiSpecified)
-        throw KeccakException("KeccakFTrailExtension::forwardExtendTrail() can work only with trail cores or trail prefixes.");
-    recurseForwardExtendTrail(trail, trailsOut, nrRounds, maxTotalWeight, checkCollision);
-}
-
 void KeccakFTrailExtension::recurseForwardExtendTrail(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxTotalWeight)
-{
-    int baseWeight = trail.totalWeight;//16
-    int baseNrRounds  = trail.getNumberOfRounds();//1
-    int curNrRounds = baseNrRounds + 1;//2
-    int curWeight = trail.weights.back();//16
-    //maxWeightOut indicates the max propagation weight of the last round of the extended trail
-    int maxWeightOut = maxTotalWeight - baseWeight
-        - knownBounds.getMinWeight(nrRounds-baseNrRounds-1);//36-16-knownBounds.getMinWeight(2-1-1), where getMinWeight(0) returns the minimal weight of one round.
-    if (maxWeightOut < knownBounds.getMinWeight(1))
-        return;//Rough filtering
-    string synopsis;
-    {
-        stringstream str;
-        str << "Weight " << dec << curWeight << " towards round " << dec << curNrRounds;
-        str << " (limiting weight to " << dec << maxWeightOut << ")";
-        synopsis = str.str();
-    }
-
-
-    /**
-      * the "KnownSmallWeightStates" class
-      *"knownSmallWeightStates" is the object pointer fo the class "KnownSmallWeightStates" that provides a list a state with low weight
-      */
-    const int minWeightInLookingForSmallWeightStates = 16;
-    if ((curWeight >= minWeightInLookingForSmallWeightStates) && (knownSmallWeightStates != 0) 
-            && (maxWeightOut <= knownSmallWeightStates->getMaxCompleteWeight())) {
-        vector<vector<SliceValue> > compatibleStates;
-        //extend one round from the initial trail
-        knownSmallWeightStates->connect(*this, trail.states.back(), maxWeightOut, compatibleStates);//Note that class "KeccakFTrailExtension" is inherited from the class "KeccakFPropagation", thus "*this" point to an KeccakFPropagation object.
-        progress.stack(synopsis + " [known small-weight states]", compatibleStates.size());
-        for(vector<vector<SliceValue> >::const_iterator i=compatibleStates.begin(); i!=compatibleStates.end(); ++i) {
-            int weightOut = getWeight(*i);//i represents one compatible D
-            int curWeight = baseWeight + weightOut;
-            if (curNrRounds == nrRounds) {
-                bool minTrail = showMinimalTrails && isLessThanMinWeightSoFar(curNrRounds, curWeight);
-                if (minTrail)
-                    cout << "! " << dec << curNrRounds << "-round trail of weight " << dec << curWeight << " found" << endl;
-                if ((curWeight <= maxTotalWeight) || minTrail) {
-                    Trail newTrail(trail);
-                    newTrail.append((*i), weightOut);
-                    trailsOut.fetchTrail(newTrail);
-                }
-            }
-            //We haven't extend to the last round yet.
-            else {
-                if (weightOut <= maxWeightOut) {
-                    Trail newTrail(trail);
-                    newTrail.append((*i), weightOut);
-                    recurseForwardExtendTrail(newTrail, trailsOut, nrRounds, maxTotalWeight);
-                }
-            }
-            ++progress;
-        }
-        progress.unstack();
-    }
-    else {
-        AffineSpaceOfStates base = buildStateBase(trail.states.back());
-        SlicesAffineSpaceIterator i(base.originalGenerators, base.offset);//i is the iterator pointing to the affine subspace produced by the last state of the trail being extended
-        progress.stack(synopsis + " [affine base]", i.getCount());//getCount() returns the number of elements in the subspace
-        for(; !i.isEnd(); ++i) {
-            int weightOut = getWeight(*i);
-            int curWeight = baseWeight + weightOut;
-            if (curNrRounds == nrRounds) {
-                bool minTrail = showMinimalTrails && isLessThanMinWeightSoFar(curNrRounds, curWeight);
-                if (minTrail)
-                    cout << "! " << dec << curNrRounds << "-round trail of weight " << dec << curWeight << " found" << endl;
-                if ((curWeight <= maxTotalWeight) || minTrail) {
-                    Trail newTrail(trail);
-                    newTrail.append((*i), weightOut);
-                    trailsOut.fetchTrail(newTrail);
-                }
-            }
-            else {
-                if (weightOut <= maxWeightOut) {
-                    Trail newTrail(trail);
-                    newTrail.append((*i), weightOut);
-                    recurseForwardExtendTrail(newTrail, trailsOut, nrRounds, maxTotalWeight);
-                }
-            }
-            ++progress;
-        }
-        progress.unstack();
-    }
-}
-
-void KeccakFTrailExtension::recurseForwardExtendTrail(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxTotalWeight, bool checkCollision[32][2])
 {
     int baseWeight = trail.totalWeight;
     int baseNrRounds  = trail.getNumberOfRounds();
-    int curNrRounds = baseNrRounds + 1;
+    unsigned int curNrRounds = baseNrRounds + 1;
     int curWeight = trail.weights.back();
     int maxWeightOut = maxTotalWeight - baseWeight
         - knownBounds.getMinWeight(nrRounds-baseNrRounds-1);
@@ -340,7 +237,7 @@ void KeccakFTrailExtension::recurseForwardExtendTrail(const Trail& trail, TrailF
     }
 
     const int minWeightInLookingForSmallWeightStates = 16;
-    if ((curWeight >= minWeightInLookingForSmallWeightStates) && (knownSmallWeightStates != 0) 
+    if ((curWeight >= minWeightInLookingForSmallWeightStates) && (knownSmallWeightStates != 0)
             && (maxWeightOut <= knownSmallWeightStates->getMaxCompleteWeight())) {
         vector<vector<SliceValue> > compatibleStates;
         knownSmallWeightStates->connect(*this, trail.states.back(), maxWeightOut, compatibleStates);
@@ -352,20 +249,17 @@ void KeccakFTrailExtension::recurseForwardExtendTrail(const Trail& trail, TrailF
                 bool minTrail = showMinimalTrails && isLessThanMinWeightSoFar(curNrRounds, curWeight);
                 if (minTrail)
                     cout << "! " << dec << curNrRounds << "-round trail of weight " << dec << curWeight << " found" << endl;
-                if ((curWeight <= maxTotalWeight) || minTrail) {					
+                if ((curWeight <= maxTotalWeight) || minTrail) {
                     Trail newTrail(trail);
                     newTrail.append((*i), weightOut);
-					if(newTrail.testCollision(checkCollision)){
-						trailsOut.fetchTrail(newTrail);
-					}
-                    
+                    trailsOut.fetchTrail(newTrail);
                 }
             }
             else {
                 if (weightOut <= maxWeightOut) {
                     Trail newTrail(trail);
                     newTrail.append((*i), weightOut);
-                    recurseForwardExtendTrail(newTrail, trailsOut, nrRounds, maxTotalWeight, checkCollision);
+                    recurseForwardExtendTrail(newTrail, trailsOut, nrRounds, maxTotalWeight);
                 }
             }
             ++progress;
@@ -386,16 +280,14 @@ void KeccakFTrailExtension::recurseForwardExtendTrail(const Trail& trail, TrailF
                 if ((curWeight <= maxTotalWeight) || minTrail) {
                     Trail newTrail(trail);
                     newTrail.append((*i), weightOut);
-					if(newTrail.testCollision(checkCollision)){ // added by myself
-						trailsOut.fetchTrail(newTrail);
-					}
+                    trailsOut.fetchTrail(newTrail);
                 }
             }
             else {
                 if (weightOut <= maxWeightOut) {
                     Trail newTrail(trail);
                     newTrail.append((*i), weightOut);
-                    recurseForwardExtendTrail(newTrail, trailsOut, nrRounds, maxTotalWeight, checkCollision);
+                    recurseForwardExtendTrail(newTrail, trailsOut, nrRounds, maxTotalWeight);
                 }
             }
             ++progress;
@@ -414,16 +306,6 @@ void KeccakFTrailExtension::backwardExtendTrails(TrailIterator& trailsIn, TrailF
     progress.unstack();
 }
 
-void KeccakFTrailExtension::backwardExtendTrails(TrailIterator& trailsIn, TrailFetcher& trailsOut, unsigned int nrRounds, int maxTotalWeight, int constrs)
-{
-    progress.stack("File", trailsIn.getCount());
-    for( ; !trailsIn.isEnd(); ++trailsIn) {
-        backwardExtendTrail(*trailsIn, trailsOut, nrRounds, maxTotalWeight, constrs);
-        ++progress;
-    }
-    progress.unstack();
-}
-
 void KeccakFTrailExtension::backwardExtendTrail(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxTotalWeight)
 {
     bool isPrefix = trail.firstStateSpecified;
@@ -431,24 +313,45 @@ void KeccakFTrailExtension::backwardExtendTrail(const Trail& trail, TrailFetcher
         recurseBackwardExtendTrail(trail, trailsOut, nrRounds, maxTotalWeight, true);
     }
     else {
-        Trail trimmedTrailPrefix;
+        Trail trimmedTrailPrefix; // cut wrev(a0)
         for(unsigned int i=1; i<trail.states.size(); i++)
             trimmedTrailPrefix.append(trail.states[i], trail.weights[i]);
         recurseBackwardExtendTrail(trimmedTrailPrefix, trailsOut, nrRounds, maxTotalWeight, allPrefixes);
     }
 }
 
-void KeccakFTrailExtension::backwardExtendTrail(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxTotalWeight, int constrs)
+/*
+ * Backward extension of 2-round trail cores.
+ * Mainly check the number of active Sboxes at first round Chi of the 3-round trail cores.
+ * Our Goal: search the 3-round trail cores (b3,b4) so that #AS(a3)<=8.
+ */
+void KeccakFTrailExtension::backwardExtendTrailsCheckAS(TrailIterator& trailsIn, TrailFetcher& trailsOut, unsigned int nrRounds, int maxActiveSBoxAtA3)
+{
+    progress.stack("File", trailsIn.getCount());
+    for( ; !trailsIn.isEnd(); ++trailsIn) {
+        backwardExtendTrailCheckAS(*trailsIn, trailsOut, nrRounds, maxActiveSBoxAtA3);
+        ++progress;
+    }
+    progress.unstack();
+}
+
+void KeccakFTrailExtension::backwardExtendTrailCheckAS(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxActiveSBoxAtA3 )
 {
     bool isPrefix = trail.firstStateSpecified;
-    if (isPrefix) {
-        recurseBackwardExtendTrail(trail, trailsOut, nrRounds, maxTotalWeight, constrs, true);
+    if (isPrefix) {//first state is not specified at this particular case
+        recurseBackwardExtendTrailCheckAS(trail, trailsOut, nrRounds, maxActiveSBoxAtA3, true);
     }
     else {
-        Trail trimmedTrailPrefix;
-        for(unsigned int i=1; i<trail.states.size(); i++)
-            trimmedTrailPrefix.append(trail.states[i], trail.weights[i]);
-        recurseBackwardExtendTrail(trimmedTrailPrefix, trailsOut, nrRounds, maxTotalWeight, constrs, allPrefixes);
+        Trail trimmedTrailPrefix;//the trimmed trail only contains: b4 and its weight
+        for(unsigned int i=0; i<trail.states.size(); i++)
+        {
+          trimmedTrailPrefix.append(trail.states[i], trail.weights[i+1]);//Marked
+        }
+        if (trail.weights[0]<=(trail.weights[1])) {
+          recurseBackwardExtendTrailCheckAS(trimmedTrailPrefix, trailsOut, nrRounds, maxActiveSBoxAtA3, allPrefixes);
+        } else {
+          cout << "neglect this trail! " << endl;
+        }
     }
 }
 
@@ -482,7 +385,7 @@ void KeccakFTrailExtension::recurseBackwardExtendTrail(const Trail& trail, Trail
         ReverseStateIterator i(stateAfterChi, *this, maxWeightOut);
         if (i.isEmpty())
             return;
-        int curNrRounds = baseNrRounds + 1;
+        unsigned int curNrRounds = baseNrRounds + 1;
         {
             stringstream str;
             str << dec << getNrActiveRows(stateAfterChi) << " active rows towards round -" << dec << curNrRounds;
@@ -516,73 +419,44 @@ void KeccakFTrailExtension::recurseBackwardExtendTrail(const Trail& trail, Trail
     }
 }
 
-void KeccakFTrailExtension::recurseBackwardExtendTrail(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxTotalWeight, int constrs, bool allPrefixes)
+void KeccakFTrailExtension::recurseBackwardExtendTrailCheckAS(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxActiveSBoxAtA3, bool allPrefixes)
 {
-    if (!allPrefixes && (nrRounds == (trail.getNumberOfRounds()+1))) {
-		//cout<<"enter if"<<endl;
-        int baseWeight = trail.totalWeight;
-        vector<SliceValue> stateAfterChi;
-        reverseLambda(trail.states[0], stateAfterChi);
-        int curMinReverseWeight = getMinReverseWeight(stateAfterChi);
-		cout<<"baseWeight = "<<baseWeight<<endl;
-		cout<<"curMinReverseWeight"<<curMinReverseWeight<<endl;
-		if(curMinReverseWeight>constrs){
-			return;
-		}
-        int curWeight = baseWeight + curMinReverseWeight;
-        bool minTrail = showMinimalTrails && isLessThanMinWeightSoFar(nrRounds, curWeight);
-        if (minTrail)
-            cout << "! " << dec << nrRounds << "-round trail of weight " << dec << curWeight << " found" << endl;
-        if ((curWeight <= maxTotalWeight) || minTrail) {
-            Trail newTrail;
-            newTrail.setFirstStateReverseMinimumWeight(curMinReverseWeight);
-            newTrail.append(trail);
-            trailsOut.fetchTrail(newTrail);
-        }
+  int maxTotalWeight = 70;
+  int baseWeight = trail.totalWeight;//w(b4)
+  int baseNrRounds  = trail.getNumberOfRounds();//1
+  int maxWeightOut = maxTotalWeight - baseWeight - knownBounds.getMinWeight(nrRounds-baseNrRounds-1);
+  if (maxWeightOut < knownBounds.getMinWeight(1))
+  return;
+  vector<SliceValue> stateAfterChi;//a4
+  reverseLambda(trail.states[0], stateAfterChi);//trail.states[0]=b4, b4->a4
+  ReverseStateIterator i(stateAfterChi, *this, maxTotalWeight);//i points to a bunch of b3 corresponds to the a4
+  if (i.isEmpty())
+  return;
+  int curNrRounds = baseNrRounds + 1;//Marked, 2=1+1
+  {
+    stringstream str;
+    str << dec << getNrActiveRows(stateAfterChi) << " active rows at a4 towards round -" << dec << curNrRounds;
+    str << " at b3 (limiting weight to " << dec << maxTotalWeight << ")";//Marked here
+    progress.stack(str.str());
+  }
+    for(; !i.isEnd(); ++i) {//Check all compatile b3 one by one; Without any optimization!!
+      std::vector<SliceValue> stateBeforeChiA3;//a3
+      reverseLambda(*i, stateBeforeChiA3);//*i = b3, b3->a3
+      int numberOfActiveRows = getNrActiveRows(stateBeforeChiA3);
+      int weightRevA3 = getMinReverseWeight(stateBeforeChiA3);
+      int weightOut = getWeight(*i);//b3
+      int threeRoundWeight = weightRevA3 + baseWeight + weightOut;//3RWeight = wrev(a3) + w(b3) + w(b4)
+
+      bool minTrail = showMinimalTrails && isLessThanMinWeightSoFar(nrRounds, threeRoundWeight);//I think it's 3 Rounds!
+      if (minTrail)
+      cout << "! " << dec << (nrRounds) << "-round trail core of weight " << dec << threeRoundWeight << " found" << endl;
+      if (((numberOfActiveRows <= maxActiveSBoxAtA3)&&(threeRoundWeight <= maxTotalWeight)) || minTrail) {
+        cout << "number of active rows at a3:" << numberOfActiveRows << endl;
+        Trail newTrail(trail);
+        newTrail.prepend((*i), weightOut, weightRevA3);
+        trailsOut.fetchTrail(newTrail);
+      }
+      ++progress;
     }
-    else {
-		//cout<<"enter else"<<endl;
-        int baseWeight = trail.totalWeight;
-        int baseNrRounds  = trail.getNumberOfRounds();
-        int maxWeightOut = maxTotalWeight - baseWeight
-            - knownBounds.getMinWeight(nrRounds-baseNrRounds-1);
-        if (maxWeightOut < knownBounds.getMinWeight(1))
-            return;
-        vector<SliceValue> stateAfterChi;
-        reverseLambda(trail.states[0], stateAfterChi);
-        ReverseStateIterator i(stateAfterChi, *this, maxWeightOut);
-        if (i.isEmpty())
-            return;
-        int curNrRounds = baseNrRounds + 1;
-        {
-            stringstream str;
-            str << dec << getNrActiveRows(stateAfterChi) << " active rows towards round -" << dec << curNrRounds;
-            str << " (limiting weight to " << dec << maxWeightOut << ")";
-            progress.stack(str.str());
-        }
-        for(; !i.isEnd(); ++i) {
-            int weightOut = getWeight(*i);
-            int curWeight = baseWeight + weightOut;
-            if (curNrRounds == nrRounds) {
-                bool minTrail = showMinimalTrails && isLessThanMinWeightSoFar(nrRounds, curWeight);
-                if (minTrail)
-                    cout << "! " << dec << nrRounds << "-round trail of weight " << dec << curWeight << " found" << endl;
-                if ((curWeight <= maxTotalWeight) || minTrail) {
-                    Trail newTrail(trail);
-                    newTrail.prepend((*i), weightOut);
-                    trailsOut.fetchTrail(newTrail);
-                }
-            }
-            else {
-                int minPrevWeight = getMinReverseWeightAfterLambda(*i);
-                if ((curWeight + minPrevWeight + knownBounds.getMinWeight(nrRounds-curNrRounds-1)) <= maxTotalWeight) {
-                    Trail newTrail(trail);
-                    newTrail.prepend((*i), weightOut);
-                    recurseBackwardExtendTrail(newTrail, trailsOut, nrRounds, maxTotalWeight, allPrefixes);
-                }
-            }
-            ++progress;
-        }
-        progress.unstack();
-    }
+    progress.unstack();
 }

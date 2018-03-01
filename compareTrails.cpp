@@ -7,6 +7,7 @@
 #include "misc.h"
 #include "L.h"
 #include "List.h"
+#include "testtools.h"
 
 void compareTrails(KeccakFPropagation::DCorLC DCLC, unsigned int width, const string& inFileName)
 {
@@ -25,7 +26,7 @@ void compareTrails(KeccakFPropagation::DCorLC DCLC, unsigned int width, const st
 			vector<SliceValue>  first = (*trailsIn).states[0];
 			vector<SliceValue>  second = (*trailsIn).states[1];
 			vector<SliceValue>  third = (*trailsIn).states[2];
-			vector<LaneValue> lanes;	
+			vector<LaneValue> lanes;
 			fromSlicesToLanes(first, lanes);
 			displayStateAs64bitWords(lanes);
 			fromSlicesToLanes(second, lanes);
@@ -68,7 +69,7 @@ void readAndPrint(KeccakFPropagation::DCorLC DCLC, unsigned int width, const str
             cout << trailsIn << endl;
 			ProgressMeter progress;
 			progress.stack("File", trailsIn.getCount());
-			vector<LaneValue> lanes;	
+			vector<LaneValue> lanes;
             int count = 0;
 			for( ; !trailsIn.isEnd(); ++trailsIn) {
 				cout<<"Trail "<<(++count)<<endl;
@@ -105,11 +106,11 @@ void precompute(mzd_t* LI, vector<vector<UINT64> >& base)
          *  C=AB+k, k is usually 0.
          */
 		res = mzd_mul_m4rm(res, LI, abase, 0);//res=LI*abase
-		for(int j=0; j<1600; j++){ 
+		for(int j=0; j<1600; j++){
 		    //if(mzd_read_bit(res, j, 0))  A[(j/320)*5+j%5] ^= (1<<(63-((j%320)/5)));
 			B[j] = mzd_read_bit(res,j,0);
 		}
-		Bit2State(B,M);	
+		Bit2State(B,M);
 		vector<UINT64> A(M,M+25);
         base.push_back(A);//Add the state B into base
 		//Ltrans(M);
@@ -144,10 +145,10 @@ void myExtendBackward(KeccakFPropagation::DCorLC DCLC, unsigned int width, const
 	mzd_t* LI = gener_LI();
 	precompute(LI, base);
 	mzd_free(LI);
-	
+
 	unsigned int diff[320];
 	UINT64 A[25];
-	vector<LaneValue> lanes;	
+	vector<LaneValue> lanes;
 
 	try {
         cout << "Initializing... " << flush;
@@ -231,7 +232,7 @@ void myExtendForward(KeccakFPropagation::DCorLC DCLC, unsigned int width, const 
 	mzd_t* L = gener_L();
 	precompute(L, base);//Base stores the linear transformation matrix columnwise, i.e., 1600 columns, each column is of size 1600*1, or a state. In other words, "base" represents the linear transformation.
 	mzd_free(L);
-	
+
 	unsigned int diff[320];//state difference
 	UINT64 A[25];//state
     vector<LaneValue> lanes;//state
@@ -321,7 +322,7 @@ void myExtendForward(UINT64 A[25])
     int DDT[32][32];
     differential_distribution_table_dir(DDT);//DDT for dir
     print_DDT(DDT);
-	
+
 	int DDT_origin[32][32];
 	differential_distribution_table_origin(DDT_origin);
 
@@ -333,7 +334,7 @@ void myExtendForward(UINT64 A[25])
 	mzd_t* L = gener_L();
 	precompute(L, base);
 	mzd_free(L);
-	
+
 	unsigned int diff[320];
 	vector<LaneValue> lanes;
 
@@ -347,4 +348,39 @@ void myExtendForward(UINT64 A[25])
 
 }
 
+/*
+ * Extend the 2-round trail cores backward by one round to obtain 3-round trail cores.
+ * So that the number of active sboxes at a3 is at most 8, i.e., <9.
+ */
+void Extend2RTrailCoreBackaward(KeccakFPropagation::DCorLC DCLC, unsigned int width, const string& inFileName)
+{
+  try{
+    cout << "Initializing..." << flush;
+    KeccakFDCLC keccakF(width);
+    cout << endl;
+    KeccakFTrailExtension keccakFTE(keccakF, DCLC);
+    cout << keccakF << endl;
 
+    try{
+      TrailFileIterator trailsIn(inFileName, keccakFTE);
+      cout << trailsIn << endl;//i.e., 'test.txt' containing 63 trails
+      string outFileName = inFileName + string("-BackwardExtensionWithASlessThan8atA");
+      ofstream fout(outFileName.c_str());
+      TrailSaveToFile trailsOut(fout);
+
+      keccakFTE.showMinimalTrails = true;
+      keccakFTE.allPrefixes = false;
+      keccakFTE.backwardExtendTrailsCheckAS(trailsIn, trailsOut, 3, 10);//nrRound=3, maxActiveSBoxAtA3=8
+
+      Trail::produceHumanReadableFile(keccakFTE, outFileName);
+    }
+    catch(TrailException e)
+    {
+      cout << e.reason << endl;
+    }
+  }
+  catch(KeccakException e)
+  {
+    cout << e.reason << endl;
+  }
+}

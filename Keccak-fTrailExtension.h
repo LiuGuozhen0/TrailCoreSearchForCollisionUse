@@ -202,11 +202,23 @@ public:
       */
     void backwardExtendTrails(TrailIterator& trailsIn, TrailFetcher& trailsOut, unsigned int nrRounds, int maxTotalWeight);
 
+    /** Extend all the 2-round trail cores (b4) indicated by "trailsIn" backward by one round to obtain all 3-round trail cores
+      * (b3, b4) such that #AS(a3)<=8.
+      * "CheckAS" means the constraints are mainly set on the number of active rows at a3.
+      * @param  trailsIn   The starting trail cores.
+      * @param  trailsOut  Where to output the found trail.
+      * @param  nrRounds   The target number of rounds, i.e., form 2-round trail cores to 3-round trail cores.
+      * @param  maxActiveSBoxAtA3  The maximal number of active rows that we can endure at a3.
+      */
+   void backwardExtendTrailsCheckAS(TrailIterator& trailsIn, TrailFetcher& trailsOut, unsigned int nrRounds, int maxActiveSBoxAtA3);
+   void backwardExtendTrailCheckAS(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxActiveSBoxAtA3);
+
 
 
 protected:
     void recurseForwardExtendTrail(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxTotalWeight);
     void recurseBackwardExtendTrail(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxTotalWeight, bool allPrefixes);
+    void recurseBackwardExtendTrailCheckAS(const Trail& trail, TrailFetcher& trailsOut, unsigned int nrRounds, int maxActiveSBoxAtA3, bool allPrefixes);
     bool isLessThanMinWeightSoFar(unsigned int nrRounds, int weight);
 };
 
