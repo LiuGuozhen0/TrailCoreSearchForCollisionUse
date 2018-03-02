@@ -9,6 +9,7 @@
 #include <m4ri/m4ri.h>
 #include <vector>
 
+
 #define rol64(a, offset) ((offset != 0) ? ((((UINT64)a) << offset) ^ (((UINT64)a) >> (64-offset))) : a)
 
 
@@ -45,7 +46,7 @@ public:
 
 
 
-void deleteNode(BigNode * target);  
+void deleteNode(BigNode * target);
 
 
 
@@ -71,6 +72,10 @@ void combine_for_state(List list, vector<UINT64>& a2, vector< vector<UINT64> >& 
 
 int combine_for_weight(List list, mzd_t* vv, mzd_t* LI, mzd_t* res, int DDT_origin[32][32]);//pos points to the last BigNode
 
+/**
+  * Return the propagation weight of the state A[25].
+  */
+int getWeight_Of_State_InLanes(vector<UINT64> &A);
 
 mzd_t* combine_for_collisiontest(List list, mzd_t* vv, mzd_t* L, mzd_t* res);//pos points to the last BigNode
 
@@ -91,7 +96,12 @@ int combine_for_num(List list, vector<UINT64>& a2, vector< vector<UINT64> >& bas
 
 
 void initial_SL(List *list, vector<UINT64>& a2, vector< vector<UINT64> >& base);//pos points to the end after this function
-
+/**
+  * This function is written to search a minimal propagation weight of
+  * a b_4, i.e., b_4-->chi a_5, of all the a_5 corresponding to b_4,
+  * we want to know the a_5 with the minimal propagation weight at b_5.
+  */
+int findMinForwardWeight(List list, vector< vector < UINT64> > & base, int DDT_origin[32][32], unsigned int diff[320]);
 
 int findminASimproved(List list, vector< vector<UINT64> >& base, int DDT_origin[32][32], unsigned int diff[320]);
 /**

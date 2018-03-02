@@ -19,6 +19,10 @@ void myExtendForward(KeccakFPropagation::DCorLC DCLC, unsigned int width, const 
 void myExtendForward(UINT64 A[25]);
 
 //new added functions
+/**
+  * Extend a 2-round trail core backward by one round to a 3-round trail core
+  * with the constraints on the number of active rows(Sboxes) of the first round \chi
+  */
 void Extend2RTrailCoreBackaward(KeccakFPropagation::DCorLC DCLC, unsigned int width, const string& inFileName);
-
+void extendForwardBy1ROutputMinWeight(KeccakFPropagation::DCorLC aDCLC, unsigned int width, const string & inFileName);
 #endif

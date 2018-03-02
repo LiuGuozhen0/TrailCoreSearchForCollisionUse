@@ -384,3 +384,72 @@ void Extend2RTrailCoreBackaward(KeccakFPropagation::DCorLC DCLC, unsigned int wi
     cout << e.reason << endl;
   }
 }
+
+void extendForwardBy1ROutputMinWeight(KeccakFPropagation::DCorLC aDCorLC, unsigned int width, const string & inFileName)
+{
+  KeccakInitializeRoundConstants();
+  KeccakInitializeRhoOffsets();
+
+  int i, j, AS;
+  int DDT[32][32];
+  differential_distribution_table_dir(DDT);
+  print_DDT(DDT);
+
+  int DDT_origin[32][32];
+  differential_distribution_table_origin(DDT_origin);
+  print_DDT(DDT_origin);
+
+  std::vector<std::vector<UINT64> > base;
+  mzd_t * L = gener_L();
+  precompute(L, base);
+  mzd_free(L);
+
+  unsigned int diff[320];
+  UINT64 A[25];
+  std::vector<LaneValue> lanes;
+
+  try{
+    std::cout << "Initializing..." << endl << flush;
+    KeccakFDCLC keccakF(width);
+    cout << endl;
+    KeccakFTrailExtension keccakFTE(keccakF, aDCorLC);
+    cout << keccakF << endl;
+
+    try{
+      TrailFileIterator trailsIn(inFileName, keccakFTE);
+      cout << trailsIn << endl;
+
+      ProgressMeter progress;
+      progress.stack("File", trailsIn.getCount());
+
+      int count = 0;
+      for ( ; !trailsIn.isEnd(); ++trailsIn) {
+        cout << "Trail " << dec << (++count) << endl;
+        fromSlicesToLanes((*trailsIn).states.back(), lanes);
+        for (int i = 0; i < 25; i++) {
+          A[i] = lanes[i];
+        }
+        AS = gen_diff320(A, diff);
+
+        cout << "AS = " << AS << endl;
+        if (AS<=10) {
+          List SL = gen_SL(diff, DDT);
+          // findminASimproved(SL, base, DDT_origin, diff);
+          findMinForwardWeight(SL, base, DDT_origin, diff);
+        }
+        else
+        cout << "#AS >= 10, neglect this trail!" << endl;
+        ++progress;
+      }
+      progress.unstack();
+    }
+    catch(TrailException e)
+    {
+      cout << e.reason << endl;
+    }
+  }
+  catch(KeccakException e)
+  {
+    cout << e.reason << endl;
+  }
+}

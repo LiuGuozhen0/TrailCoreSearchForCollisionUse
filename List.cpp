@@ -4,9 +4,9 @@
 using namespace std;
 
 
-void List::addAtEnd(int dout, int lev, int indiff[32][32])  
+void List::addAtEnd(int dout, int lev, int indiff[32][32])
 {
-    cout<<lev<<" "<<"dout="<<dout<<": ";
+    cout<<"Add the "<<lev<<"-th AS to Sbox List, "<<"din (or dout)= "<<dout<<": ";
     Node *t;
     BigNode *here = pos;
     BigNode *q;
@@ -33,15 +33,15 @@ void List::addAtEnd(int dout, int lev, int indiff[32][32])
     q->current = q->head;
 
 
-    if( here == NULL){ 
+    if( here == NULL){
         pos = q;
         q->next = NULL;
         q->pre = NULL;
     }
     else
     {
-         while(here->next != NULL){ 
-             here = here->next; 
+         while(here->next != NULL){
+             here = here->next;
          }
          here->next = q;
          q->pre = here;
@@ -182,8 +182,8 @@ List gen_SL( unsigned int diff[320], int DDT[32][32])
     int i,j;
     for(i=0;i<320;i++){
         if(diff[i]>0){
-            //cout<<i<<' '<<diff[i]<<endl;
-            list.addAtEnd(diff[i], i, DDT);  
+            cout<<i<<"-th AS, difference: "<<diff[i]<<endl;
+            list.addAtEnd(diff[i], i, DDT);
         }
 
     }
@@ -256,15 +256,15 @@ int get_weight_of_AS( mzd_t * res, int DDT_origin[32][32])
             dout |= ((mzd_read_bit(res,i*5+j,0))<<j);
         }
         if(dout>0){
-            if((dout==1) || (dout==2) || (dout==4) || (dout==8) ||(dout==16)){ 
+            if((dout==1) || (dout==2) || (dout==4) || (dout==8) ||(dout==16)){
                 weight =  2;
             }
             else{
                 num = 0;
                 for(j=0;j<32;j++){
-                    if(DDT_origin[j][dout] > num) { 
+                    if(DDT_origin[j][dout] > num) {
                         num = DDT_origin[j][dout];
-                    } 
+                    }
                 }
                 weight = log(32/num)/log(2);
             }
@@ -274,6 +274,35 @@ int get_weight_of_AS( mzd_t * res, int DDT_origin[32][32])
     return total_weight;
 }
 
+int getWeight_Of_State_InLanes(vector<UINT64> &A)
+{
+  int i, j, din;
+  unsigned int weight = 0, totalWeight=0;
+  int num=0;
+
+  for (i = 0; i < 320; i++) {
+    weight = 0;//Here is the bug. I forgot to update the weight.
+    din = 0;
+    for (j = 0; j < 5; j++) {
+      din ^= ((A[(i/64)*5 + j]>>(i%64))&0x1)<<j;
+    }
+    if (din > 0) {
+      num++;
+      if ((din == 1) || (din == 2) || (din == 4) || (din == 8) || (din == 16)) {
+        weight = 2;
+      }
+      else if ((din==3)||(din==5)||(din==6)||(din==9)||(din==10)||(din==11)||(din==12)||(din==13)||(din==17)||(din==18)||(din==20)||(din==21)||(din==22)||(din==26)) {
+        weight = 3;
+      }
+      else if ((din==7)||(din==14)||(din==15)||(din==19)||(din==23)||(din==24)||(din==25)||(din==27)||(din==28)||(din==29)||(din==30)||(din==31)){
+        weight = 4;
+      }
+    }
+    totalWeight += weight;
+  }
+  // cout << num << " active sboxes in total!" << endl;
+  return totalWeight;
+}
 
 
 int combine_for_num(List list, mzd_t* vv, mzd_t* LI, mzd_t* res)//pos points to the last BigNode
@@ -416,7 +445,7 @@ int findminWeight(List list, int DDT_origin[32][32], unsigned int diff[320])
             if(temp<total_weight){
                 cout<<temp<<endl;
                 total_weight = temp;
-                list.outputlist(DDT_origin, diff);				
+                list.outputlist(DDT_origin, diff);
             }
             while(p->next!=NULL){ p = p->next;}
         }
@@ -431,6 +460,59 @@ int findminWeight(List list, int DDT_origin[32][32], unsigned int diff[320])
     mzd_free(vv);
     cout<<"num="<<num<<endl;
     return total_weight;
+}
+
+int findMinForwardWeight(List list, vector< vector < UINT64> > & base, int DDT_origin[32][32], unsigned int diff[320])
+{
+  int tempWeight;
+  BigNode *p;
+  int totalWeight = 0;
+  vector <UINT64> a5(25,0);
+
+  initial_SL(&list, a5, base);
+  // cout << "TEST:" << endl;
+  // for (int i = 0; i < a5.size(); i++) {
+  //   cout.width(16); cout.fill('0');
+  //   cout << hex << a5[i] << endl;;
+  // }
+  totalWeight = getWeight_Of_State_InLanes(a5);
+  cout << "Initial: " << totalWeight << endl;
+
+  UINT64 A[25] = {
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000};
+  vector <UINT64> ZERO(A,A+25);
+
+  int num = 1;
+  p = list.pos;
+  while (p != NULL) {
+    p->current = (p->current)->next;
+    if (p->current != NULL) {
+      a5.clear();
+      a5.assign(ZERO.begin(), ZERO.end());
+      combine_for_state(list, a5, base);
+      tempWeight = getWeight_Of_State_InLanes(a5);
+      num++;
+      if(tempWeight < totalWeight){
+        cout << "Temp minal weight: " << tempWeight << endl;
+        totalWeight = tempWeight;
+        list.outputlist(DDT_origin, diff);
+      }
+      while (p->next != NULL) {
+        p = p->next;
+      }
+    }
+    else{
+      p->current = p->head;
+      p = p->pre;
+    }
+  }
+  cout << "The min total Weight = " << totalWeight << endl;
+  cout << "The number of all output diff of b4, i.e. a5: " << num << endl << endl;
+  return totalWeight;
 }
 
 bool testCollision(mzd_t* res, bool checkCollision[32][2])
@@ -454,7 +536,7 @@ bool testCollision(mzd_t* res, bool checkCollision[32][2])
 		if((mask&lane3)==mask){
 			cout<<"yes!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! a satisfied trail is found!"<<endl;
 			return true;
-		} 
+		}
 		mask = rol64(mask,1);
 	}
     return false;
@@ -471,7 +553,7 @@ int findCollision(List list, bool checkCollision[32][2], int DDT_origin[32][32],
 
     vv = initial_SL(&list, vv);
     res = mzd_mul_m4rm(res, L, vv, 0);
-	
+
 	if(testCollision(res, checkCollision)) {
 		cout<<"find one solution, return now!"<<endl;
 		return 1;
@@ -493,7 +575,7 @@ int findCollision(List list, bool checkCollision[32][2], int DDT_origin[32][32],
 		        cout<<"find one solution, break now!"<<endl;
 				list.outputlist(DDT_origin, diff);
 				flag = true;
-		        break; 
+		        break;
             }
             while(p->next!=NULL){ p = p->next;}
         }
@@ -590,13 +672,13 @@ int findminASimproved(List list, vector< vector<UINT64> >& base, int DDT_origin[
     cout<<"initial: "<<total_active<<endl;
 
 	UINT64 A[25] = {
-0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 
-0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 
-0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 
+0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000};
 	vector<UINT64> ZERO(A,A+25);
-	
+
     int num=1;
     p = list.pos;
     //cout<<list.pos->level<<endl;
@@ -705,7 +787,7 @@ bool testCollisionForIndiff( vector<UINT64>& a2, bool checkCollision[32][2], int
 									ddt += DDT_origin[diff[k]][out];
 
 						    }
-						}						
+						}
 					}
 					//cout<<"ddt = "<<ddt<<endl;
 					switch(ddt){
@@ -714,15 +796,15 @@ bool testCollisionForIndiff( vector<UINT64>& a2, bool checkCollision[32][2], int
 						case 8 : {weight = 2; break;}
 						case 4:  {weight = 3; break;}
 						case 2 : {weight = 4; break;}
-                        default: cout<<"error"<<endl;						
+                        default: cout<<"error"<<endl;
 					}
 					cout<<weight<<endl;
 					TotalWeight += weight;
-				}						
+				}
 			}
 			cout<<"TotalWeight = "<<TotalWeight<<endl;
 			return true;
-		} 
+		}
 	}
 	return false;
 }
@@ -733,7 +815,7 @@ bool testCollisionForIndiff( vector<UINT64>& a2, bool checkCollision[32][2], int
 int HW(UINT64 a, int n){
 	int res = 0;
 	for(int i=0; i<n; i++){
-		res += ((a>>i)&0x1);		
+		res += ((a>>i)&0x1);
 	}
 	return res;
 }
@@ -759,7 +841,7 @@ int testCollisionForIndiffHW( vector<UINT64>& a2, bool checkCollision[32][2])
 	for(int i = 0; i<64; i++){
 		if(HW(mask&laneHalf, lanesize)>max){
 			max = HW(mask&laneHalf, lanesize);
-		} 
+		}
 		mask = rol64(mask,1);
 	}
 	int sum = HW(laneFull, lanesize)+max;
@@ -810,7 +892,7 @@ bool myCheckCollision(List list, vector< vector<UINT64> >& base, unsigned int di
 
     unsigned int diffBeforeChi[320];
 	vector<UINT64> ZERO(25,0);
-	
+
 
 	int positive = 0;
 	int negative = 1;
@@ -862,7 +944,7 @@ int myCheckCollisionHW(List list, vector< vector<UINT64> >& base, unsigned int d
    cout<<"ddd"<<endl;
     unsigned int diffBeforeChi[320];
 	vector<UINT64> ZERO(25,0);
-	
+
     p = list.pos;
     //cout<<list.pos->level<<endl;
     while(p!=NULL){
