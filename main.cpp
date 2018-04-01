@@ -41,7 +41,7 @@ http://creativecommons.org/publicdomain/zero/1.0/
 #include <unistd.h>
 #include <string.h>//memset()
 
-#include <testtools.h>
+#include "testtools.h"
 
 using namespace std;
 
@@ -93,38 +93,46 @@ int main(int argc, char *argv[])
 	KeccakFPropagation::DCorLC aDCorLC;
 	aDCorLC = KeccakFPropagation::DC;
 
-	string fileName = "coreb52-224-check100";
-	string fileName1 = "coreb52";
-    string fileName11="coreb52-check";
-    string fileName2 = "coreb60m64new-plus";
-    readAndPrint(aDCorLC, 1600, fileName1);
-    myExtendBackward(aDCorLC, 1600, fileName);  // in compareTrails.h
-    extendTrails(aDCorLC, 1600, fileName1, 2, 160, false);
+	// string fileName = "coreb52-224-check100";
+	// string fileName1 = "coreb52";
+  //   string fileName11="coreb52-check";
+  //   string fileName2 = "coreb60m64new-plus";
+  //   readAndPrint(aDCorLC, 1600, fileName1);
+  //   myExtendBackward(aDCorLC, 1600, fileName);  // in compareTrails.h
+  //   extendTrails(aDCorLC, 1600, fileName1, 2, 160, false);
+  //
+  //   myExtendForward(aDCorLC, 1600, fileName2);
+  //   myExtendBackward(aDCorLC, 1600, fileName2);
+  //
+  //   myExtendForward(aDCorLC, 1600, fileName1); // in compareTrails.h
+  //   myExtendBackward(aDCorLC, 1600, fileName11);
+  //
+  //   computeWeightOfW1();
+  //   string fileName3 = "coreb52-1";
+  //   string fileName33 = "coreb52-1-check1";
+  //   string fileName333 = "coreb52-1-check1-check";
+  //   extendForward3Rounds1(aDCorLC, 1600, fileName3);
+  //   myExtendForward(aDCorLC, 1600, fileName33);
+  //
+  //   string fileName3 = "coreb60m64new-plus-1";
+  //   string fileName33 = "coreb60m64new-plus-1-check1";
+  //   string fileName333 = "coreb60m64new-plus-1-check1-check";
+  //   extendForward3Rounds1(aDCorLC, 1600, fileName3);
+  //   myExtendForward(aDCorLC, 1600, fileName33);
+  //   myExtendBackward(aDCorLC, 1600, fileName333);
+  //
+  //   instantFormatTransformation();
+  //
+  //   string trails="coreb52-1-check1-check";
+  //   fromTrailsTo64bitWords1(trails);
 
-    myExtendForward(aDCorLC, 1600, fileName2);
-    myExtendBackward(aDCorLC, 1600, fileName2);
+    // string testFile = "test.txt";
+    string inFile = "DCKeccakF-1600-TwoRoundTrailCoresInKernel-Below-8-w1";
+    // Extend2RTrailCoreBackaward(aDCorLC, 1600, testFile);
+    // Extend2RTrailCoreBackaward(aDCorLC, 1600, inFile);
 
-    myExtendForward(aDCorLC, 1600, fileName1); // in compareTrails.h
-    myExtendBackward(aDCorLC, 1600, fileName11);
-
-    computeWeightOfW1();
-    string fileName3 = "coreb52-1";
-    string fileName33 = "coreb52-1-check1";
-    string fileName333 = "coreb52-1-check1-check";
-    extendForward3Rounds1(aDCorLC, 1600, fileName3);
-    myExtendForward(aDCorLC, 1600, fileName33);
-
-    string fileName3 = "coreb60m64new-plus-1";
-    string fileName33 = "coreb60m64new-plus-1-check1";
-    string fileName333 = "coreb60m64new-plus-1-check1-check";
-    extendForward3Rounds1(aDCorLC, 1600, fileName3);
-    myExtendForward(aDCorLC, 1600, fileName33);
-    myExtendBackward(aDCorLC, 1600, fileName333);
-
-    instantFormatTransformation();
-
-    string trails="coreb52-1-check1-check";
-    fromTrailsTo64bitWords1(trails);
+    string findWeightFile = "DCKeccakF-1600-TwoRoundTrailCoresInKernel-Below-8-w1-BackwardExtensionWithASlessThan8atA";
+    extendForwardBy1ROutputMinWeight(aDCorLC, 1600, findWeightFile);
 
     return EXIT_SUCCESS;
 }
